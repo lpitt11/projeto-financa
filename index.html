@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FinTrack — Gestão Financeira Pessoal</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast">
+  <div class="t-dot" id="tdot"></div>
+  <span id="tmsg"></span>
+</div>
+
+<!-- ===== LOGIN / REGISTER ===== -->
+<div id="login-wrap">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="logo-mark">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div>
+          <div class="logo-name">FinTrack</div>
+          <div class="logo-tagline">Gestão Financeira Pessoal</div>
+        </div>
+      </div>
+
+      <!-- Login View -->
+      <div id="lv">
+        <div class="l-title">Bem-vindo de volta</div>
+        <div class="l-sub">Entre com sua conta para continuar</div>
+        <div class="lg">
+          <label class="ll">E-mail</label>
+          <input class="li" type="email" placeholder="seu@email.com"/>
+        </div>
+        <div class="lg">
+          <label class="ll">Senha</label>
+          <input class="li" type="password" placeholder="••••••••"/>
+        </div>
+        <div class="rem-row">
+          <input type="checkbox" id="rem" checked/>
+          <label for="rem">Lembrar de mim</label>
+          <span class="forgot">Esqueci a senha</span>
+        </div>
+        <button class="btn-login" onclick="doLogin()">Entrar</button>
+        <div class="l-switch">Sem conta? <span onclick="toReg()">Criar conta grátis</span></div>
+      </div>
+
+      <!-- Register View -->
+      <div id="rv" style="display:none">
+        <div class="l-title">Criar conta</div>
+        <div class="l-sub">Comece gratuitamente hoje mesmo</div>
+        <div class="lg">
+          <label class="ll">Nome completo</label>
+          <input class="li" type="text" placeholder="João Duarte"/>
+        </div>
+        <div class="lg">
+          <label class="ll">E-mail</label>
+          <input class="li" type="email" placeholder="seu@email.com"/>
+        </div>
+        <div class="lg">
+          <label class="ll">Senha</label>
+          <input class="li" type="password" placeholder="Mínimo 8 caracteres"/>
+        </div>
+        <button class="btn-login" onclick="doLogin()">Criar conta grátis</button>
+        <div class="l-switch">Já tem conta? <span onclick="toLgn()">Entrar</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== APP SHELL ===== -->
+<div class="app" id="app" style="display:none">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sb-logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <div>
+        <div class="logo-name">FinTrack</div>
+        <div class="logo-tagline">Gestão Financeira</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-section">Principal</div>
+      <div class="nav-item active" onclick="go('dash', this)">
+        <svg class="ni" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="go('txn', this)">
+        <svg class="ni" viewBox="0 0 24 24"><path d="M8 6l4-4 4 4"/><path d="M12 2v10.5"/><path d="M16 18l-4 4-4-4"/><path d="M12 21.5V11"/></svg>
+        Transações
+      </div>
+      <div class="nav-item" onclick="go('plans', this)">
+        <svg class="ni" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        Planos
+      </div>
+
+      <div class="nav-section">Conta</div>
+      <div class="nav-item" onclick="go('pro', this)">
+        <svg class="ni" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Upgrade PRO
+        <div class="nav-dot"></div>
+      </div>
+    </nav>
+
+    <div class="sb-user">
+      <div class="user-row">
+        <div class="av">JD</div>
+        <div>
+          <div class="u-name">João Duarte</div>
+          <div class="u-plan">Plano Gratuito</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main" id="main">
+
+    <!-- Dashboard -->
+    <div class="screen active" id="s-dash">
+      <div class="ph">
+        <div>
+          <div class="pt">Dashboard</div>
+          <div class="ps">Maio 2025 · Visão geral das finanças</div>
+        </div>
+        <button class="btn btn-p" onclick="openTxnModal()">+ Adicionar</button>
+      </div>
+
+      <div class="bal-card">
+        <div>
+          <div class="bal-label">Saldo Atual</div>
+          <div class="bal-amount">R$ 4.230,00</div>
+          <div class="bal-sub">Atualizado agora · Maio 2025</div>
+        </div>
+        <div class="bal-right">
+          <div class="bal-pill">↑ +12% vs abril</div>
+          <div class="progress-wrap">
+            <div class="prog-label"><span>Meta mensal</span><span>68%</span></div>
+            <div class="prog-bar"><div class="prog-fill" style="width:68%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Receitas</div>
+          <div class="stat-val inc">R$ 8.500</div>
+          <div class="stat-change chg-up">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg>
+            +12% vs abril
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Despesas</div>
+          <div class="stat-val exp">R$ 4.270</div>
+          <div class="stat-change chg-dn">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+            -5% vs abril
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Saldo Final</div>
+          <div class="stat-val">R$ 4.230</div>
+          <div class="stat-change chg-up">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg>
+            Positivo
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-title">Receitas vs Despesas</div>
+          <div class="panel-sub">Últimos 6 meses</div>
+          <div class="bar-chart" id="barchart"></div>
+          <div class="legend">
+            <div class="leg"><div class="leg-dot" style="background:var(--green)"></div>Receitas</div>
+            <div class="leg"><div class="leg-dot" style="background:var(--red)"></div>Despesas</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Gastos por categoria</div>
+          <div class="panel-sub">Maio 2025</div>
+          <div class="donut-wrap">
+            <svg width="80" height="80" viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="29" fill="none" stroke="#1a1a1a" stroke-width="13"/>
+              <circle cx="40" cy="40" r="29" fill="none" stroke="#2b6fff" stroke-width="13" stroke-dasharray="55 127" stroke-dashoffset="0" transform="rotate(-90 40 40)"/>
+              <circle cx="40" cy="40" r="29" fill="none" stroke="#22c55e" stroke-width="13" stroke-dasharray="32 150" stroke-dashoffset="-55" transform="rotate(-90 40 40)"/>
+              <circle cx="40" cy="40" r="29" fill="none" stroke="#f59e0b" stroke-width="13" stroke-dasharray="24 158" stroke-dashoffset="-87" transform="rotate(-90 40 40)"/>
+              <circle cx="40" cy="40" r="29" fill="none" stroke="#a855f7" stroke-width="13" stroke-dasharray="18 164" stroke-dashoffset="-111" transform="rotate(-90 40 40)"/>
+            </svg>
+            <div class="cats">
+              <div class="cat-row"><div class="cat-pip" style="background:#2b6fff"></div><div class="cat-n">Moradia</div><div class="cat-p">30%</div></div>
+              <div class="cat-row"><div class="cat-pip" style="background:#22c55e"></div><div class="cat-n">Alimentação</div><div class="cat-p">18%</div></div>
+              <div class="cat-row"><div class="cat-pip" style="background:#f59e0b"></div><div class="cat-n">Transporte</div><div class="cat-p">13%</div></div>
+              <div class="cat-row"><div class="cat-pip" style="background:#a855f7"></div><div class="cat-n">Lazer</div><div class="cat-p">10%</div></div>
+              <div class="cat-row"><div class="cat-pip" style="background:#555"></div><div class="cat-n">Outros</div><div class="cat-p">29%</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="txn-box">
+        <div class="txn-head">
+          <div class="txn-head-t">Transações recentes</div>
+          <div class="txn-link" onclick="go('txn', document.querySelectorAll('.nav-item')[1])">Ver todas →</div>
+        </div>
+        <div id="recent"></div>
+      </div>
+    </div>
+
+    <!-- Transactions -->
+    <div class="screen" id="s-txn">
+      <div class="ph">
+        <div>
+          <div class="pt">Transações</div>
+          <div class="ps">Gerencie receitas e despesas</div>
+        </div>
+        <button class="btn btn-p" onclick="openTxnModal()">+ Nova transação</button>
+      </div>
+      <div class="filters">
+        <button class="fb active" onclick="filt('all', this)">Todas</button>
+        <button class="fb" onclick="filt('income', this)">Receitas</button>
+        <button class="fb" onclick="filt('expense', this)">Despesas</button>
+        <button class="fb" onclick="filt('fixed', this)">Fixas</button>
+        <button class="fb" onclick="filt('once', this)">Únicas</button>
+      </div>
+      <div class="txn-box" id="all-txn"></div>
+    </div>
+
+    <!-- Plans -->
+    <div class="screen" id="s-plans">
+      <div class="ph">
+        <div>
+          <div class="pt">Planos Financeiros</div>
+          <div class="ps">Metas e orçamentos mensais</div>
+        </div>
+        <button class="btn btn-p" onclick="openPlanModal()">+ Novo plano</button>
+      </div>
+      <div class="plans-grid" id="pgrid"></div>
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-title">Progresso das metas</div>
+          <div class="panel-sub">Maio 2025</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px" id="gprog"></div>
+        </div>
+        <div class="locked-panel">
+          <div class="lock-ico">
+            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          </div>
+          <div class="lock-t">Relatórios detalhados e exportação disponíveis no plano PRO</div>
+          <div class="lock-lnk" onclick="go('pro', document.querySelectorAll('.nav-item')[3])">Ver plano PRO →</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRO Upgrade -->
+    <div class="screen" id="s-pro">
+      <div class="ph">
+        <div>
+          <div class="pt">Upgrade PRO</div>
+          <div class="ps">Desbloqueie o potencial completo do FinTrack</div>
+        </div>
+      </div>
+      <div class="pro-wrap">
+        <div class="pro-hero">
+          <div class="pro-chip">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            FINTRACK PRO
+          </div>
+          <div class="pro-title">Controle financeiro sem limites</div>
+          <div class="pro-sub">Gráficos avançados, relatórios e exportação para tomar melhores decisões financeiras</div>
+        </div>
+        <div class="pricing-cols">
+          <div class="pc">
+            <div class="pc-label" style="color:var(--text3)">Gratuito</div>
+            <div class="pc-price"><sup>R$</sup>0</div>
+            <div class="pc-period">para sempre</div>
+            <div class="feats">
+              <div class="fi-row on"><div class="chk ok"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>Dashboard básico</div>
+              <div class="fi-row on"><div class="chk ok"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>Até 50 transações/mês</div>
+              <div class="fi-row on"><div class="chk ok"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>Categorias padrão</div>
+              <div class="fi-row on"><div class="chk ok"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>2 planos financeiros</div>
+              <div class="fi-row"><div class="chk no"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></div>Gráficos avançados</div>
+              <div class="fi-row"><div class="chk no"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></div>Relatórios em PDF</div>
+              <div class="fi-row"><div class="chk no"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></div>Exportar CSV / Excel</div>
+              <div class="fi-row"><div class="chk no"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></div>Categorias personalizadas</div>
+            </div>
+            <button class="btn-free">Plano atual</button>
+          </div>
+          <div class="pc">
+            <div class="pc-label" style="color:var(--blue2)">PRO ★</div>
+            <div class="pc-price" style="color:var(--blue2)"><sup style="color:var(--blue2)">R$</sup>19<span class="price-cents">,90</span></div>
+            <div class="pc-period">por mês · cancele quando quiser</div>
+            <div class="feats">
+              <div class="fi-row on"><div class="chk ok"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>Tudo do plano gratuito</div>
+              <div class="fi-row on"><div class="chk ok"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>Transações ilimitadas</div>
+              <div class="fi-row on"><div class="chk ok"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>Gráficos avançados</div>
+              <div class="fi-row on"><div class="chk ok"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>Relatórios em PDF</div>
+              <div class="fi-row on"><div class="chk ok"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>Exportar CSV / Excel</div>
+              <div class="fi-row on"><div class="chk ok"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>Categorias personalizadas</div>
+              <div class="fi-row on"><div class="chk ok"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>Planos ilimitados</div>
+              <div class="fi-row on"><div class="chk ok"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>Suporte prioritário</div>
+            </div>
+            <button class="btn-pro" onclick="showToast('Em breve! Obrigado pelo interesse.', '#2b6fff')">Assinar PRO · R$19,90/mês</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ===== MODAL: TRANSACTION ===== -->
+<div class="modal-wrap" id="txn-modal">
+  <div class="modal">
+    <div class="modal-t">Nova transação</div>
+    <div class="fg full" style="margin-bottom:12px">
+      <div class="type-toggle">
+        <button class="tb inc active" id="tb-inc" onclick="setT('income')">▲ Receita</button>
+        <button class="tb exp" id="tb-exp" onclick="setT('expense')">▼ Despesa</button>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg">
+        <label class="fl">Descrição</label>
+        <input class="fi" type="text" placeholder="Ex: Salário" id="t-desc"/>
+      </div>
+      <div class="fg">
+        <label class="fl">Valor (R$)</label>
+        <input class="fi" type="number" placeholder="0,00" id="t-val"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg">
+        <label class="fl">Categoria</label>
+        <select class="fi" id="t-cat">
+          <option>Salário</option><option>Freelance</option><option>Moradia</option>
+          <option>Alimentação</option><option>Transporte</option><option>Saúde</option>
+          <option>Lazer</option><option>Educação</option><option>Outros</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Tipo</label>
+        <select class="fi" id="t-recur">
+          <option value="fixed">Fixa (mensal)</option>
+          <option value="once">Única</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg">
+        <label class="fl">Data</label>
+        <input class="fi" type="date" id="t-date"/>
+      </div>
+    </div>
+    <div class="modal-act">
+      <button class="btn btn-g" onclick="closeTxnModal()">Cancelar</button>
+      <button class="btn btn-p" onclick="addTxn()">Salvar transação</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: PLAN ===== -->
+<div class="modal-wrap" id="plan-modal">
+  <div class="modal">
+    <div class="modal-t">Novo plano financeiro</div>
+    <div class="form-row">
+      <div class="fg">
+        <label class="fl">Nome do plano</label>
+        <input class="fi" type="text" placeholder="Ex: Férias 2025" id="p-name"/>
+      </div>
+      <div class="fg">
+        <label class="fl">Meta (R$)</label>
+        <input class="fi" type="number" placeholder="5000" id="p-goal"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg">
+        <label class="fl">Categoria</label>
+        <select class="fi" id="p-cat">
+          <option>Poupança</option><option>Investimento</option><option>Viagem</option>
+          <option>Emergência</option><option>Educação</option><option>Outros</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Recorrência</label>
+        <select class="fi" id="p-recur">
+          <option value="monthly">Mensal</option>
+          <option value="once">Único</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-act">
+      <button class="btn btn-g" onclick="closePlanModal()">Cancelar</button>
+      <button class="btn btn-p" onclick="addPlan()">Criar plano</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
