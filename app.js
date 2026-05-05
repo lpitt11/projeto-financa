@@ -1,10 +1,20 @@
+
+
 /* ===========================
    FINTRACK — app.js
    Lógica principal do app
 =========================== */
 
 // ===========================
-// DADOS INICIAIS
+// 1. CONEXÃO COM SUPABASE
+// ===========================
+const SUPABASE_URL = 'https://dsgeduzjhvepperoeuhe.supabase.co/rest/v1/'; 
+const SUPABASE_KEY = 'sb_publishable_G11x2M5RWNPZO1efX_-aTw_IqVTgmT0';
+
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ===========================
+// DADOS INICIAIS (Mocks visuais)
 // ===========================
 
 const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
@@ -29,17 +39,7 @@ const PLAN_COLORS = ['var(--blue)', '#22c55e', '#f59e0b', '#a855f7', '#f43f5e', 
 // ESTADO DA APLICAÇÃO
 // ===========================
 
-let transactions = [
-  { id: 1, type: 'income',  desc: 'Salário Maio',      val: 8500, cat: 'Salário',     recur: 'fixed', date: '01/05' },
-  { id: 2, type: 'expense', desc: 'Aluguel',            val: 2200, cat: 'Moradia',     recur: 'fixed', date: '05/05' },
-  { id: 3, type: 'expense', desc: 'Supermercado',       val: 480,  cat: 'Alimentação', recur: 'once',  date: '08/05' },
-  { id: 4, type: 'expense', desc: 'Uber',               val: 95,   cat: 'Transporte',  recur: 'once',  date: '10/05' },
-  { id: 5, type: 'expense', desc: 'Academia',           val: 120,  cat: 'Saúde',       recur: 'fixed', date: '12/05' },
-  { id: 6, type: 'income',  desc: 'Freelance Design',   val: 1200, cat: 'Freelance',   recur: 'once',  date: '15/05' },
-  { id: 7, type: 'expense', desc: 'Netflix + Spotify',  val: 75,   cat: 'Lazer',       recur: 'fixed', date: '18/05' },
-  { id: 8, type: 'expense', desc: 'Farmácia',           val: 65,   cat: 'Saúde',       recur: 'once',  date: '20/05' },
-];
-
+let transactions = [];
 let plans = [
   { id: 1, name: 'Reserva de Emergência', cat: 'Poupança',     goal: 10000, current: 4200, recur: 'monthly' },
   { id: 2, name: 'Viagem Europa 2025',    cat: 'Viagem',       goal: 15000, current: 6800, recur: 'once'    },
@@ -47,7 +47,6 @@ let plans = [
   { id: 4, name: 'Investimento Mensal',   cat: 'Investimento', goal: 1500,  current: 1500, recur: 'monthly' },
 ];
 
-let nextTxnId = 9;
 let currentType = 'income';
 let currentFilter = 'all';
 
@@ -92,7 +91,118 @@ function buildBarChart() {
 }
 
 // ===========================
-// TRANSAÇÕES
+// LÓGICA DO SUPABASE (CRUD)
+// ===========================
+
+async function loadTransactions() {
+  const { data, error } = await db
+    .from('transactions')
+    .select('*')
+    .order('id', { ascending: false });
+
+  if (error) {
+    showToast('Erro ao carregar transações', '#f43f5e');
+    console.error(error);
+  } else {
+    transactions = data || [];
+    renderTransactions();
+  }
+}
+
+async function deleteTxn(id) {
+  if(confirm('Tem certeza que deseja excluir esta transação?')) {
+    
+    const { error } = await db
+      .from('transactions')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      showToast('Erro ao excluir do banco', '#f43f5e');
+      console.error(error);
+    } else {
+      transactions = transactions.filter(t => t.id !== id);
+      renderTransactions();
+      showToast('Transação removida.', '#f43f5e');
+    }
+  }
+}
+
+async function addTxn() {
+  const descText  = document.getElementById('t-desc').value.trim();
+  const val   = parseFloat(document.getElementById('t-val').value);
+  const cat   = document.getElementById('t-cat').value;
+  const recur = document.getElementById('t-recur').value;
+  const raw   = document.getElementById('t-date').value;
+  const parcelasInput = document.getElementById('t-parcelas');
+  const parcelas = parseInt(parcelasInput ? parcelasInput.value : 1) || 1;
+
+  if (!descText || !val || val <= 0) {
+    showToast('Preencha a descrição e um valor válido', '#f43f5e');
+    return;
+  }
+
+  let transactionsToInsert = [];
+
+  if (currentType === 'expense' && parcelas > 1) {
+    const valorParcela = val / parcelas;
+    let dataBase = raw ? new Date(raw + 'T12:00:00') : new Date();
+
+    for (let i = 0; i < parcelas; i++) {
+      let dataParcela = new Date(dataBase);
+      dataParcela.setMonth(dataParcela.getMonth() + i); 
+      
+      let dia = String(dataParcela.getDate()).padStart(2, '0');
+      let mes = String(dataParcela.getMonth() + 1).padStart(2, '0');
+      
+      transactionsToInsert.push({ 
+        type: currentType, 
+        description: `${descText} (${i+1}/${parcelas})`, // MUDANÇA PARA description
+        val: valorParcela, 
+        cat: cat, 
+        recur: 'once',
+        date: `${dia}/${mes}` 
+      });
+    }
+  } else {
+    const parts = raw ? raw.split('-') : [];
+    const dateStr = parts.length === 3 ? `${parts[2]}/${parts[1]}` : 'Hoje';
+    
+    transactionsToInsert.push({ 
+      type: currentType, 
+      description: descText, // MUDANÇA PARA description
+      val: val, 
+      cat: cat, 
+      recur: recur, 
+      date: dateStr 
+    });
+  }
+
+  const { data, error } = await db
+    .from('transactions')
+    .insert(transactionsToInsert)
+    .select();
+
+  if (error) {
+    showToast('Erro ao salvar no banco', '#f43f5e');
+    // Isso vai imprimir o erro exato no F12 caso aconteça de novo!
+    console.error("ERRO DO SUPABASE:", error); 
+  } else {
+    transactions = [...data, ...transactions];
+    transactions.sort((a,b) => b.id - a.id); 
+    
+    closeTxnModal();
+    renderTransactions();
+    showToast(parcelas > 1 ? `Adicionada em ${parcelas} parcelas!` : 'Transação adicionada com sucesso!', '#22c55e');
+
+    document.getElementById('t-desc').value = '';
+    document.getElementById('t-val').value  = '';
+    if(parcelasInput) parcelasInput.value = '1';
+  }
+}
+
+// ===========================
+// RENDERIZAÇÃO TRANSAÇÕES
 // ===========================
 
 function buildTransactionHTML(t) {
@@ -105,7 +215,7 @@ function buildTransactionHTML(t) {
     <div class="txn-row">
       <div class="txn-ico" style="background:${ic.bg}">${ic.e}</div>
       <div class="txn-info">
-        <div class="txn-name">${t.desc}${badge}</div>
+        <div class="txn-name">${t.description}${badge}</div> 
         <div class="txn-cat">${t.cat}</div>
       </div>
       <div class="txn-right" style="display: flex; align-items: center; gap: 12px; justify-content: flex-end;">
@@ -132,7 +242,7 @@ function renderTransactions() {
   });
 
   if (recentEl) {
-    recentEl.innerHTML = transactions.slice(-4).map(buildTransactionHTML).join('');
+    recentEl.innerHTML = transactions.slice(0, 4).map(buildTransactionHTML).join('');
   }
 
   if (allEl) {
@@ -148,14 +258,6 @@ function renderTransactions() {
     } else {
       allEl.innerHTML = filtered.map(buildTransactionHTML).join('');
     }
-  }
-}
-
-function deleteTxn(id) {
-  if(confirm('Tem certeza que deseja excluir esta transação?')) {
-    transactions = transactions.filter(t => t.id !== id);
-    renderTransactions();
-    showToast('Transação removida.', '#f43f5e');
   }
 }
 
@@ -213,7 +315,7 @@ function renderPlans() {
 }
 
 // ===========================
-// MODAL: TRANSAÇÃO
+// MODAIS
 // ===========================
 
 function openTxnModal() {
@@ -237,60 +339,6 @@ function setT(type) {
     rowParcelas.style.display = type === 'expense' ? 'grid' : 'none';
   }
 }
-
-function addTxn() {
-  const desc  = document.getElementById('t-desc').value.trim();
-  const val   = parseFloat(document.getElementById('t-val').value);
-  const cat   = document.getElementById('t-cat').value;
-  const recur = document.getElementById('t-recur').value;
-  const raw   = document.getElementById('t-date').value;
-  const parcelasInput = document.getElementById('t-parcelas');
-  const parcelas = parseInt(parcelasInput ? parcelasInput.value : 1) || 1;
-
-  if (!desc || !val || val <= 0) {
-    showToast('Preencha a descrição e um valor válido', '#f43f5e');
-    return;
-  }
-
-  if (currentType === 'expense' && parcelas > 1) {
-    const valorParcela = val / parcelas;
-    let dataBase = raw ? new Date(raw + 'T12:00:00') : new Date();
-
-    for (let i = 0; i < parcelas; i++) {
-      let dataParcela = new Date(dataBase);
-      dataParcela.setMonth(dataParcela.getMonth() + i); 
-      
-      let dia = String(dataParcela.getDate()).padStart(2, '0');
-      let mes = String(dataParcela.getMonth() + 1).padStart(2, '0');
-      
-      transactions.push({ 
-        id: nextTxnId++, 
-        type: currentType, 
-        desc: `${desc} (${i+1}/${parcelas})`, 
-        val: valorParcela, 
-        cat, 
-        recur: 'once',
-        date: `${dia}/${mes}` 
-      });
-    }
-  } else {
-    const parts = raw ? raw.split('-') : [];
-    const dateStr = parts.length === 3 ? `${parts[2]}/${parts[1]}` : 'Hoje';
-    transactions.push({ id: nextTxnId++, type: currentType, desc, val, cat, recur, date: dateStr });
-  }
-
-  closeTxnModal();
-  renderTransactions();
-  showToast(parcelas > 1 ? `Adicionada em ${parcelas} parcelas!` : 'Transação adicionada com sucesso!', '#22c55e');
-
-  document.getElementById('t-desc').value = '';
-  document.getElementById('t-val').value  = '';
-  if(parcelasInput) parcelasInput.value = '1';
-}
-
-// ===========================
-// MODAL: PLANO
-// ===========================
 
 function openPlanModal() {
   document.getElementById('plan-modal').classList.add('open');
@@ -322,7 +370,7 @@ function addPlan() {
 }
 
 // ===========================
-// FILTROS
+// FILTROS & TOAST
 // ===========================
 
 function filt(filter, el) {
@@ -331,10 +379,6 @@ function filt(filter, el) {
   el.classList.add('active');
   renderTransactions();
 }
-
-// ===========================
-// TOAST
-// ===========================
 
 function showToast(msg, color) {
   const toast = document.getElementById('toast');
@@ -349,7 +393,7 @@ function showToast(msg, color) {
 }
 
 // ===========================
-// PERFIL DO USUÁRIO
+// PERFIL & CONFIGURAÇÕES
 // ===========================
 
 function salvarPerfil() {
@@ -360,64 +404,72 @@ function salvarPerfil() {
     return;
   }
   
-  document.querySelector('.u-name').textContent = novoNome;
-  
-  const nomes = novoNome.trim().split(' ');
-  const iniciais = nomes.length > 1 
-    ? nomes[0][0] + nomes[nomes.length - 1][0] 
-    : nomes[0].substring(0, 2);
-  
-  document.querySelector('.av').textContent = iniciais.toUpperCase();
+  atualizarNomeUI(novoNome);
+  localStorage.setItem('fintrack_nome', novoNome);
   
   showToast('Perfil atualizado com sucesso!', '#22c55e');
 }
 
-// ===========================
-// CONFIGURAÇÕES (TEMA E IDIOMA)
-// ===========================
-
-function mudarTema(cor) {
-  // Remove classes atuais
-  document.body.classList.remove('theme-red', 'theme-yellow');
+function atualizarNomeUI(nome) {
+  const uNameEl = document.querySelector('.u-name');
+  if(uNameEl) uNameEl.textContent = nome;
   
-  // Tira estado 'active' de todos os botões de cor
-  document.querySelectorAll('.btn-theme').forEach(btn => btn.classList.remove('active'));
-  document.getElementById(`tema-${cor}`).classList.add('active');
+  const nomes = nome.trim().split(' ');
+  const iniciais = nomes.length > 1 
+    ? nomes[0][0] + nomes[nomes.length - 1][0] 
+    : nomes[0].substring(0, 2);
+    
+  const avEl = document.querySelector('.av');
+  if(avEl) avEl.textContent = iniciais.toUpperCase();
+  
+  const inputNome = document.getElementById('perfil-nome');
+  if(inputNome) inputNome.value = nome;
+}
 
-  // Adiciona a classe do novo tema (se não for azul/padrão)
+function mudarTema(cor, showMsg = true) {
+  document.body.classList.remove('theme-red', 'theme-yellow');
+  document.querySelectorAll('.btn-theme').forEach(btn => btn.classList.remove('active'));
+  
+  const btnAtivo = document.getElementById(`tema-${cor}`);
+  if(btnAtivo) btnAtivo.classList.add('active');
+
   if (cor === 'red') {
     document.body.classList.add('theme-red');
   } else if (cor === 'yellow') {
     document.body.classList.add('theme-yellow');
   }
   
-  // Atualiza os componentes gráficos que dependem da cor em JS
-  renderPlans();
+  localStorage.setItem('fintrack_theme', cor);
   
-  showToast('Tema visual atualizado!', 'var(--blue)');
+  renderPlans();
+  if(showMsg) showToast('Tema visual atualizado!', 'var(--blue)');
 }
 
-function mudarIdioma() {
+function mudarIdioma(showMsg = true) {
   const select = document.getElementById('config-idioma');
-  const idiomas = {
-    'pt': 'Português',
-    'en': 'Inglês',
-    'es': 'Espanhol'
-  };
+  const idiomas = { 'pt': 'Português', 'en': 'Inglês', 'es': 'Espanhol' };
   
-  // Como as strings estão hardcoded no HTML, informamos que o app "salvou" a preferência.
-  showToast(`Idioma alterado para ${idiomas[select.value]}. (Simulação)`, 'var(--blue)');
+  localStorage.setItem('fintrack_lang', select.value);
+  
+  if(showMsg) showToast(`Idioma alterado para ${idiomas[select.value]}.`, 'var(--blue)');
 }
 
 // ===========================
-// AUTENTICAÇÃO
+// AUTENTICAÇÃO E STARTUP
 // ===========================
 
 function doLogin() {
+  localStorage.setItem('fintrack_logged', 'true'); 
   document.getElementById('login-wrap').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
+  
+  loadTransactions();
   buildBarChart();
-  renderTransactions();
+}
+
+function doLogout() {
+  localStorage.removeItem('fintrack_logged'); 
+  window.location.reload(); 
 }
 
 function toReg() {
@@ -429,6 +481,28 @@ function toLgn() {
   document.getElementById('rv').style.display = 'none';
   document.getElementById('lv').style.display = 'block';
 }
+
+// Inicializa a página
+window.onload = function() {
+  const savedName = localStorage.getItem('fintrack_nome') || 'João Duarte';
+  atualizarNomeUI(savedName);
+
+  const savedTheme = localStorage.getItem('fintrack_theme') || 'blue';
+  mudarTema(savedTheme, false);
+
+  const savedLang = localStorage.getItem('fintrack_lang');
+  if (savedLang) {
+    document.getElementById('config-idioma').value = savedLang;
+  }
+
+  const isLogged = localStorage.getItem('fintrack_logged');
+  if (isLogged === 'true') {
+    document.getElementById('login-wrap').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    loadTransactions();
+    buildBarChart();
+  }
+};
 
 // ===========================
 // EVENTOS - FECHAR MODAIS
