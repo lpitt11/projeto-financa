@@ -15,14 +15,16 @@
   --bg3:         #151515;
   --bg4:         #1a1a1a;
   --bg5:         #222222;
+  
+  /* Cores Principais (Dinâmicas via Tema) */
   --blue:        #2b6fff;
   --blue2:       #4d8fff;
   --blue3:       #1a4fd6;
   --blue-dim:    rgba(43, 111, 255, 0.12);
-  --blue-dim2:   rgba(43, 111, 255, 0.08);
+  --border-blue: rgba(43, 111, 255, 0.30);
+  
   --border:      rgba(255, 255, 255, 0.06);
   --border2:     rgba(255, 255, 255, 0.10);
-  --border-blue: rgba(43, 111, 255, 0.30);
   --text:        #f5f5f5;
   --text2:       #888888;
   --text3:       #555555;
@@ -34,6 +36,23 @@
   --r-sm:        7px;
 }
 
+/* TEMAS PERSONALIZADOS */
+body.theme-red {
+  --blue:        #ef4444;
+  --blue2:       #f87171;
+  --blue3:       #b91c1c;
+  --blue-dim:    rgba(239, 68, 68, 0.12);
+  --border-blue: rgba(239, 68, 68, 0.30);
+}
+
+body.theme-yellow {
+  --blue:        #f59e0b;
+  --blue2:       #fbbf24;
+  --blue3:       #d97706;
+  --blue-dim:    rgba(245, 158, 11, 0.12);
+  --border-blue: rgba(245, 158, 11, 0.30);
+}
+
 html, body {
   height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
@@ -42,6 +61,7 @@ html, body {
   font-size: 13px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  transition: background 0.3s, color 0.3s;
 }
 
 /* ===== SCROLLBAR ===== */
@@ -220,6 +240,30 @@ html, body {
 }
 .btn-g:hover { background: var(--bg4); color: var(--text); }
 
+/* Botão de Excluir Transação */
+.btn-del {
+  background: transparent;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 14px;
+  transition: color 0.15s;
+  padding: 5px;
+}
+.btn-del:hover { color: var(--red); }
+
+/* Botões de Cores (Configurações) */
+.btn-theme {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.btn-theme:hover { transform: scale(1.1); }
+.btn-theme.active { border-color: var(--text); }
+
 /* ===========================
    BALANCE CARD
 =========================== */
@@ -356,7 +400,7 @@ html, body {
   padding: 10px 16px;
   border-bottom: 1px solid var(--border);
   transition: background 0.12s;
-  cursor: pointer;
+  cursor: default;
 }
 .txn-row:last-child { border-bottom: none; }
 .txn-row:hover { background: var(--bg4); }

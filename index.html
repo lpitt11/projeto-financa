@@ -8,13 +8,11 @@
 </head>
 <body>
 
-<!-- ===== TOAST ===== -->
 <div class="toast" id="toast">
   <div class="t-dot" id="tdot"></div>
   <span id="tmsg"></span>
 </div>
 
-<!-- ===== LOGIN / REGISTER ===== -->
 <div id="login-wrap">
   <div class="login-wrap">
     <div class="login-card">
@@ -28,7 +26,6 @@
         </div>
       </div>
 
-      <!-- Login View -->
       <div id="lv">
         <div class="l-title">Bem-vindo de volta</div>
         <div class="l-sub">Entre com sua conta para continuar</div>
@@ -49,7 +46,6 @@
         <div class="l-switch">Sem conta? <span onclick="toReg()">Criar conta grátis</span></div>
       </div>
 
-      <!-- Register View -->
       <div id="rv" style="display:none">
         <div class="l-title">Criar conta</div>
         <div class="l-sub">Comece gratuitamente hoje mesmo</div>
@@ -72,10 +68,8 @@
   </div>
 </div>
 
-<!-- ===== APP SHELL ===== -->
 <div class="app" id="app" style="display:none">
 
-  <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sb-logo">
       <div class="logo-mark">
@@ -103,6 +97,16 @@
       </div>
 
       <div class="nav-section">Conta</div>
+      <div class="nav-item" onclick="go('perfil', this)">
+        <svg class="ni" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Meu Perfil
+      </div>
+      
+      <div class="nav-item" onclick="go('config', this)">
+        <svg class="ni" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Configurações
+      </div>
+
       <div class="nav-item" onclick="go('pro', this)">
         <svg class="ni" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
         Upgrade PRO
@@ -111,7 +115,7 @@
     </nav>
 
     <div class="sb-user">
-      <div class="user-row">
+      <div class="user-row" onclick="go('perfil', document.querySelectorAll('.nav-item')[3])">
         <div class="av">JD</div>
         <div>
           <div class="u-name">João Duarte</div>
@@ -121,10 +125,8 @@
     </div>
   </aside>
 
-  <!-- Main Content -->
   <main class="main" id="main">
 
-    <!-- Dashboard -->
     <div class="screen active" id="s-dash">
       <div class="ph">
         <div>
@@ -192,13 +194,13 @@
           <div class="donut-wrap">
             <svg width="80" height="80" viewBox="0 0 80 80">
               <circle cx="40" cy="40" r="29" fill="none" stroke="#1a1a1a" stroke-width="13"/>
-              <circle cx="40" cy="40" r="29" fill="none" stroke="#2b6fff" stroke-width="13" stroke-dasharray="55 127" stroke-dashoffset="0" transform="rotate(-90 40 40)"/>
+              <circle cx="40" cy="40" r="29" fill="none" stroke="var(--blue)" stroke-width="13" stroke-dasharray="55 127" stroke-dashoffset="0" transform="rotate(-90 40 40)"/>
               <circle cx="40" cy="40" r="29" fill="none" stroke="#22c55e" stroke-width="13" stroke-dasharray="32 150" stroke-dashoffset="-55" transform="rotate(-90 40 40)"/>
               <circle cx="40" cy="40" r="29" fill="none" stroke="#f59e0b" stroke-width="13" stroke-dasharray="24 158" stroke-dashoffset="-87" transform="rotate(-90 40 40)"/>
               <circle cx="40" cy="40" r="29" fill="none" stroke="#a855f7" stroke-width="13" stroke-dasharray="18 164" stroke-dashoffset="-111" transform="rotate(-90 40 40)"/>
             </svg>
             <div class="cats">
-              <div class="cat-row"><div class="cat-pip" style="background:#2b6fff"></div><div class="cat-n">Moradia</div><div class="cat-p">30%</div></div>
+              <div class="cat-row"><div class="cat-pip" style="background:var(--blue)"></div><div class="cat-n">Moradia</div><div class="cat-p">30%</div></div>
               <div class="cat-row"><div class="cat-pip" style="background:#22c55e"></div><div class="cat-n">Alimentação</div><div class="cat-p">18%</div></div>
               <div class="cat-row"><div class="cat-pip" style="background:#f59e0b"></div><div class="cat-n">Transporte</div><div class="cat-p">13%</div></div>
               <div class="cat-row"><div class="cat-pip" style="background:#a855f7"></div><div class="cat-n">Lazer</div><div class="cat-p">10%</div></div>
@@ -217,7 +219,6 @@
       </div>
     </div>
 
-    <!-- Transactions -->
     <div class="screen" id="s-txn">
       <div class="ph">
         <div>
@@ -236,7 +237,6 @@
       <div class="txn-box" id="all-txn"></div>
     </div>
 
-    <!-- Plans -->
     <div class="screen" id="s-plans">
       <div class="ph">
         <div>
@@ -257,12 +257,79 @@
             <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
           </div>
           <div class="lock-t">Relatórios detalhados e exportação disponíveis no plano PRO</div>
-          <div class="lock-lnk" onclick="go('pro', document.querySelectorAll('.nav-item')[3])">Ver plano PRO →</div>
+          <div class="lock-lnk" onclick="go('pro', document.querySelectorAll('.nav-item')[5])">Ver plano PRO →</div>
         </div>
       </div>
     </div>
 
-    <!-- PRO Upgrade -->
+    <div class="screen" id="s-perfil">
+      <div class="ph">
+        <div>
+          <div class="pt">Meu Perfil</div>
+          <div class="ps">Gerencie suas informações e segurança</div>
+        </div>
+      </div>
+      
+      <div class="panel" style="max-width: 600px;">
+        <div class="form-row">
+          <div class="fg full">
+            <label class="fl">Nome de Exibição</label>
+            <input class="fi" type="text" id="perfil-nome" value="João Duarte"/>
+          </div>
+          <div class="fg full">
+            <label class="fl">E-mail (Acesso)</label>
+            <input class="fi" type="email" id="perfil-email" value="joao@email.com" disabled style="opacity: 0.6; cursor: not-allowed;"/>
+          </div>
+        </div>
+        
+        <div class="panel-sub" style="margin-top: 20px;">Segurança e Assinatura</div>
+        <div class="bal-card" style="padding: 15px; margin-bottom: 20px;">
+          <div>
+            <div class="bal-label">Status da Conta</div>
+            <div class="bal-amount" style="font-size: 20px;" id="perfil-status">Plano Gratuito</div>
+          </div>
+          <button class="btn btn-g" onclick="go('pro', document.querySelectorAll('.nav-item')[5])">Ver benefícios PRO</button>
+        </div>
+
+        <button class="btn btn-p" onclick="salvarPerfil()">Salvar Alterações</button>
+      </div>
+    </div>
+
+    <div class="screen" id="s-config">
+      <div class="ph">
+        <div>
+          <div class="pt">Configurações</div>
+          <div class="ps">Personalize a aparência e o idioma do app</div>
+        </div>
+      </div>
+      
+      <div class="panel" style="max-width: 600px;">
+        
+        <div class="form-row">
+          <div class="fg full">
+            <label class="fl">Idioma da Interface</label>
+            <select class="fi" id="config-idioma" onchange="mudarIdioma()">
+              <option value="pt">Português (BR)</option>
+              <option value="en">English</option>
+              <option value="es">Español</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-row" style="margin-top: 16px;">
+          <div class="fg full">
+            <label class="fl">Cor do Tema (Destaque)</label>
+            <div style="display: flex; gap: 12px; margin-top: 8px;">
+              <button class="btn-theme active" id="tema-blue" style="background: #2b6fff;" onclick="mudarTema('blue')" title="Azul (Padrão)"></button>
+              <button class="btn-theme" id="tema-red" style="background: #ef4444;" onclick="mudarTema('red')" title="Vermelho"></button>
+              <button class="btn-theme" id="tema-yellow" style="background: #f59e0b;" onclick="mudarTema('yellow')" title="Amarelo"></button>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+
     <div class="screen" id="s-pro">
       <div class="ph">
         <div>
@@ -310,7 +377,7 @@
               <div class="fi-row on"><div class="chk ok"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>Planos ilimitados</div>
               <div class="fi-row on"><div class="chk ok"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>Suporte prioritário</div>
             </div>
-            <button class="btn-pro" onclick="showToast('Em breve! Obrigado pelo interesse.', '#2b6fff')">Assinar PRO · R$19,90/mês</button>
+            <button class="btn-pro" onclick="showToast('Em breve! Obrigado pelo interesse.', 'var(--blue)')">Assinar PRO · R$19,90/mês</button>
           </div>
         </div>
       </div>
@@ -319,7 +386,6 @@
   </main>
 </div>
 
-<!-- ===== MODAL: TRANSACTION ===== -->
 <div class="modal-wrap" id="txn-modal">
   <div class="modal">
     <div class="modal-t">Nova transação</div>
@@ -339,6 +405,14 @@
         <input class="fi" type="number" placeholder="0,00" id="t-val"/>
       </div>
     </div>
+    
+    <div class="form-row" id="row-parcelas" style="display:none;">
+      <div class="fg full">
+        <label class="fl">Quantidade de Parcelas (Meses)</label>
+        <input class="fi" type="number" placeholder="1" value="1" min="1" id="t-parcelas"/>
+      </div>
+    </div>
+
     <div class="form-row">
       <div class="fg">
         <label class="fl">Categoria</label>
@@ -369,7 +443,6 @@
   </div>
 </div>
 
-<!-- ===== MODAL: PLAN ===== -->
 <div class="modal-wrap" id="plan-modal">
   <div class="modal">
     <div class="modal-t">Novo plano financeiro</div>

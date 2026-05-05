@@ -23,7 +23,7 @@ const ICONS = {
   'Outros':      { e: '📌', bg: 'rgba(85,85,85,0.15)'   },
 };
 
-const PLAN_COLORS = ['#2b6fff', '#22c55e', '#f59e0b', '#a855f7', '#f43f5e', '#14b8a6'];
+const PLAN_COLORS = ['var(--blue)', '#22c55e', '#f59e0b', '#a855f7', '#f43f5e', '#14b8a6'];
 
 // ===========================
 // ESTADO DA APLICAÇÃO
@@ -56,17 +56,13 @@ let currentFilter = 'all';
 // ===========================
 
 function go(screenId, navEl) {
-  // Esconde todas as telas
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  // Remove active de todos os itens do nav
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
-  // Ativa a tela e o item de nav corretos
   const screen = document.getElementById('s-' + screenId);
   if (screen) screen.classList.add('active');
   if (navEl) navEl.classList.add('active');
 
-  // Renderiza conteúdo dinâmico ao trocar de tela
   if (screenId === 'txn')   renderTransactions();
   if (screenId === 'plans') renderPlans();
 }
@@ -112,9 +108,12 @@ function buildTransactionHTML(t) {
         <div class="txn-name">${t.desc}${badge}</div>
         <div class="txn-cat">${t.cat}</div>
       </div>
-      <div class="txn-right">
-        <div class="txn-amt ${cls}">${sign} R$ ${t.val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-        <div class="txn-dt">${t.date}</div>
+      <div class="txn-right" style="display: flex; align-items: center; gap: 12px; justify-content: flex-end;">
+        <div style="text-align: right;">
+          <div class="txn-amt ${cls}">${sign} R$ ${t.val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+          <div class="txn-dt">${t.date}</div>
+        </div>
+        <button class="btn-del" onclick="deleteTxn(${t.id})" title="Excluir transação">✖</button>
       </div>
     </div>`;
 }
@@ -123,7 +122,6 @@ function renderTransactions() {
   const recentEl = document.getElementById('recent');
   const allEl    = document.getElementById('all-txn');
 
-  // Filtra conforme filtro ativo
   const filtered = transactions.filter(t => {
     if (currentFilter === 'all')     return true;
     if (currentFilter === 'income')  return t.type === 'income';
@@ -133,12 +131,10 @@ function renderTransactions() {
     return true;
   });
 
-  // Recentes no dashboard (últimas 4)
   if (recentEl) {
     recentEl.innerHTML = transactions.slice(-4).map(buildTransactionHTML).join('');
   }
 
-  // Lista completa na tela de transações
   if (allEl) {
     if (filtered.length === 0) {
       allEl.innerHTML = `
@@ -155,6 +151,14 @@ function renderTransactions() {
   }
 }
 
+function deleteTxn(id) {
+  if(confirm('Tem certeza que deseja excluir esta transação?')) {
+    transactions = transactions.filter(t => t.id !== id);
+    renderTransactions();
+    showToast('Transação removida.', '#f43f5e');
+  }
+}
+
 // ===========================
 // PLANOS
 // ===========================
@@ -164,7 +168,6 @@ function renderPlans() {
   const progEl  = document.getElementById('gprog');
   if (!gridEl) return;
 
-  // Cards de plano
   gridEl.innerHTML = plans.map((p, i) => {
     const pct   = Math.min(100, Math.round((p.current / p.goal) * 100));
     const color = PLAN_COLORS[i % PLAN_COLORS.length];
@@ -191,7 +194,6 @@ function renderPlans() {
       </div>`;
   }).join('');
 
-  // Barra de progresso simplificada no painel lateral
   if (progEl) {
     progEl.innerHTML = plans.map((p, i) => {
       const pct   = Math.min(100, Math.round((p.current / p.goal) * 100));
@@ -216,9 +218,9 @@ function renderPlans() {
 
 function openTxnModal() {
   document.getElementById('txn-modal').classList.add('open');
-  // Define data de hoje por padrão
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('t-date').value = today;
+  setT('income'); 
 }
 
 function closeTxnModal() {
@@ -229,6 +231,11 @@ function setT(type) {
   currentType = type;
   document.getElementById('tb-inc').classList.toggle('active', type === 'income');
   document.getElementById('tb-exp').classList.toggle('active', type === 'expense');
+  
+  const rowParcelas = document.getElementById('row-parcelas');
+  if(rowParcelas) {
+    rowParcelas.style.display = type === 'expense' ? 'grid' : 'none';
+  }
 }
 
 function addTxn() {
@@ -237,25 +244,48 @@ function addTxn() {
   const cat   = document.getElementById('t-cat').value;
   const recur = document.getElementById('t-recur').value;
   const raw   = document.getElementById('t-date').value;
+  const parcelasInput = document.getElementById('t-parcelas');
+  const parcelas = parseInt(parcelasInput ? parcelasInput.value : 1) || 1;
 
   if (!desc || !val || val <= 0) {
     showToast('Preencha a descrição e um valor válido', '#f43f5e');
     return;
   }
 
-  // Formata data dd/MM
-  const parts = raw ? raw.split('-') : [];
-  const dateStr = parts.length === 3 ? `${parts[2]}/${parts[1]}` : 'Hoje';
+  if (currentType === 'expense' && parcelas > 1) {
+    const valorParcela = val / parcelas;
+    let dataBase = raw ? new Date(raw + 'T12:00:00') : new Date();
 
-  transactions.push({ id: nextTxnId++, type: currentType, desc, val, cat, recur, date: dateStr });
+    for (let i = 0; i < parcelas; i++) {
+      let dataParcela = new Date(dataBase);
+      dataParcela.setMonth(dataParcela.getMonth() + i); 
+      
+      let dia = String(dataParcela.getDate()).padStart(2, '0');
+      let mes = String(dataParcela.getMonth() + 1).padStart(2, '0');
+      
+      transactions.push({ 
+        id: nextTxnId++, 
+        type: currentType, 
+        desc: `${desc} (${i+1}/${parcelas})`, 
+        val: valorParcela, 
+        cat, 
+        recur: 'once',
+        date: `${dia}/${mes}` 
+      });
+    }
+  } else {
+    const parts = raw ? raw.split('-') : [];
+    const dateStr = parts.length === 3 ? `${parts[2]}/${parts[1]}` : 'Hoje';
+    transactions.push({ id: nextTxnId++, type: currentType, desc, val, cat, recur, date: dateStr });
+  }
 
   closeTxnModal();
   renderTransactions();
-  showToast('Transação adicionada com sucesso!', '#22c55e');
+  showToast(parcelas > 1 ? `Adicionada em ${parcelas} parcelas!` : 'Transação adicionada com sucesso!', '#22c55e');
 
-  // Limpa campos
   document.getElementById('t-desc').value = '';
   document.getElementById('t-val').value  = '';
+  if(parcelasInput) parcelasInput.value = '1';
 }
 
 // ===========================
@@ -319,14 +349,73 @@ function showToast(msg, color) {
 }
 
 // ===========================
-// AUTENTICAÇÃO (simulada)
+// PERFIL DO USUÁRIO
+// ===========================
+
+function salvarPerfil() {
+  const novoNome = document.getElementById('perfil-nome').value;
+  
+  if (!novoNome) {
+    showToast('O nome não pode ficar vazio!', '#f43f5e');
+    return;
+  }
+  
+  document.querySelector('.u-name').textContent = novoNome;
+  
+  const nomes = novoNome.trim().split(' ');
+  const iniciais = nomes.length > 1 
+    ? nomes[0][0] + nomes[nomes.length - 1][0] 
+    : nomes[0].substring(0, 2);
+  
+  document.querySelector('.av').textContent = iniciais.toUpperCase();
+  
+  showToast('Perfil atualizado com sucesso!', '#22c55e');
+}
+
+// ===========================
+// CONFIGURAÇÕES (TEMA E IDIOMA)
+// ===========================
+
+function mudarTema(cor) {
+  // Remove classes atuais
+  document.body.classList.remove('theme-red', 'theme-yellow');
+  
+  // Tira estado 'active' de todos os botões de cor
+  document.querySelectorAll('.btn-theme').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(`tema-${cor}`).classList.add('active');
+
+  // Adiciona a classe do novo tema (se não for azul/padrão)
+  if (cor === 'red') {
+    document.body.classList.add('theme-red');
+  } else if (cor === 'yellow') {
+    document.body.classList.add('theme-yellow');
+  }
+  
+  // Atualiza os componentes gráficos que dependem da cor em JS
+  renderPlans();
+  
+  showToast('Tema visual atualizado!', 'var(--blue)');
+}
+
+function mudarIdioma() {
+  const select = document.getElementById('config-idioma');
+  const idiomas = {
+    'pt': 'Português',
+    'en': 'Inglês',
+    'es': 'Espanhol'
+  };
+  
+  // Como as strings estão hardcoded no HTML, informamos que o app "salvou" a preferência.
+  showToast(`Idioma alterado para ${idiomas[select.value]}. (Simulação)`, 'var(--blue)');
+}
+
+// ===========================
+// AUTENTICAÇÃO
 // ===========================
 
 function doLogin() {
   document.getElementById('login-wrap').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
-
-  // Inicializa componentes após login
   buildBarChart();
   renderTransactions();
 }
@@ -342,7 +431,7 @@ function toLgn() {
 }
 
 // ===========================
-// FECHAR MODAIS AO CLICAR FORA
+// EVENTOS - FECHAR MODAIS
 // ===========================
 
 document.getElementById('txn-modal').addEventListener('click', function (e) {
@@ -352,10 +441,6 @@ document.getElementById('txn-modal').addEventListener('click', function (e) {
 document.getElementById('plan-modal').addEventListener('click', function (e) {
   if (e.target === this) closePlanModal();
 });
-
-// ===========================
-// FECHAR MODAIS COM ESC
-// ===========================
 
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') {
