@@ -699,12 +699,29 @@ html, body {
 /* ===========================
    LOGIN SCREEN
 =========================== */
-.login-wrap {
-  display: flex;
+/* Centralização total do contêiner de login */
+#login-wrap {
+  display: none; /* Será controlado pelo JS */
+  width: 100%;
+  min-height: 100vh;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: var(--bg); /* Mantém o fundo escuro */
+  z-index: 2000;
+  
+  /* Aqui está a mágica da centralização */
+  display: none; /* O JS vai mudar para 'flex' */
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  background: var(--bg);
+}
+
+/* Garante que a classe interna não limite o tamanho */
+.login-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .login-card {
