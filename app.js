@@ -831,3 +831,285 @@ document.addEventListener('keydown', function (e) {
     closeConfirmPlanModal();
   }
 });
+
+// ===========================
+// CHATBOT PRO (Assistente IA)
+// ===========================
+
+let isProUser = false; // Em produção, busque essa flag do banco de dados (Supabase)
+
+// Chama esta função para liberar o chat (você pode amarrar isso ao login se for PRO)
+function ativarPROFake() {
+  isProUser = true;
+  document.getElementById('pro-chat-btn').style.display = 'flex';
+  showToast('Plano PRO Ativado! Assistente de IA liberada.', '#a855f7');
+}
+
+function toggleChat() {
+  const chat = document.getElementById('pro-chat-window');
+  chat.style.display = chat.style.display === 'flex' ? 'none' : 'flex';
+  if (chat.style.display === 'flex') {
+    document.getElementById('chat-input').focus();
+  }
+}
+
+function handleChatEnter(e) {
+  if (e.key === 'Enter') sendChatMessage();
+}
+
+function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const chatBody = document.getElementById('chat-body');
+
+  // 1. Renderiza a mensagem do usuário
+  chatBody.innerHTML += `<div class="msg user-msg">${text}</div>`;
+  input.value = '';
+  chatBody.scrollTop = chatBody.scrollHeight; // Rola pro final
+
+  // 2. Cria o indicador de "A IA está digitando..."
+  const typingId = 'typing-' + Date.now();
+  chatBody.innerHTML += `<div id="${typingId}" class="msg ai-msg" style="color: var(--text3); font-style: italic;">A IA está analisando...</div>`;
+  chatBody.scrollTop = chatBody.scrollHeight;
+
+  // 3. Simula a chamada para uma API real de IA com um delay
+  setTimeout(() => {
+    // Remove o "Digitando..."
+    document.getElementById(typingId).remove();
+    
+    // Obtém a resposta baseada no texto
+    const aiResponse = gerarRespostaIADeMentirinha(text);
+    
+    // Renderiza a resposta da IA
+    chatBody.innerHTML += `<div class="msg ai-msg">${aiResponse}</div>`;
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }, 1500); // 1.5 segundos de delay para parecer real
+}
+
+// Simulador de Lógica LLM (Large Language Model) para testes do Frontend
+function gerarRespostaIADeMentirinha(mensagem) {
+  const msgLower = mensagem.toLowerCase();
+  
+  if (msgLower.includes('dívida') || msgLower.includes('divida')) {
+    return "Recomendo focar primeiro nas dívidas com juros mais altos, como o cartão de crédito. Quer que eu simule um plano de quitação usando o método 'Bola de Neve'?";
+  } else if (msgLower.includes('investir') || msgLower.includes('investimento')) {
+    return "Ótimo passo! Antes de ir para a Bolsa, você já possui sua Reserva de Emergência? Ela deve cobrir cerca de 6 meses das suas despesas mensais (que vejo no seu dashboard).";
+  } else if (msgLower.includes('limite') || msgLower.includes('gasto')) {
+    return "Baseado nos seus últimos gastos, a categoria 'Alimentação' costuma consumir muito. Que tal criarmos um Plano Financeiro para limitar saídas em restaurantes neste mês?";
+  } else if (msgLower.includes('oi') || msgLower.includes('ola') || msgLower.includes('olá')) {
+    return "Olá! Estou a postos. Você prefere falar sobre como cortar gastos esta semana ou analisar seus investimentos futuros?";
+  } else {
+    return "Entendi a situação. Como sua assistente PRO, posso analisar seu histórico de transações para te dar uma resposta exata. Você gostaria que eu gerasse um relatório das suas maiores saídas financeiras?";
+  }
+}
+
+// ===========================
+// SISTEMA DE UPGRADE PRO
+// ===========================
+
+function openCheckoutModal() {
+  document.getElementById('checkout-modal').classList.add('open');
+}
+
+function closeCheckoutModal() {
+  document.getElementById('checkout-modal').classList.remove('open');
+}
+
+function processarPagamento() {
+  const nome = document.getElementById('cc-name').value;
+  const num = document.getElementById('cc-num').value;
+  
+  if(!nome || !num) {
+    showToast('Preencha os dados do cartão', '#f43f5e');
+    return;
+  }
+
+  const btn = document.getElementById('btn-pay');
+  btn.innerHTML = 'Processando...';
+  btn.disabled = true;
+  btn.style.opacity = '0.7';
+
+  // Simula o tempo de validação do banco (2 segundos)
+  setTimeout(() => {
+    // Sucesso!
+    localStorage.setItem('fintrack_pro', 'true'); // Salva o status localmente
+    
+    closeCheckoutModal();
+    btn.innerHTML = 'Pagar R$ 19,90';
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    
+    // Limpa os campos
+    document.getElementById('cc-name').value = '';
+    document.getElementById('cc-num').value = '';
+    document.getElementById('cc-val').value = '';
+    document.getElementById('cc-cvv').value = '';
+    
+    showToast('Pagamento aprovado! Bem-vindo ao PRO ✦', '#a855f7');
+    aplicarStatusPRO(); // Atualiza a interface
+    
+    // Mostra efeito de confete/festa na tela (simples e chamativo)
+    dispararConfetes();
+
+  }, 2000);
+}
+
+// Função que desbloqueia a interface para assinantes
+function aplicarStatusPRO() {
+  if (localStorage.getItem('fintrack_pro') === 'true') {
+    isProUser = true; // Libera a variável global
+    
+    // 1. Mostra o botão do Chatbot de IA
+    const chatBtn = document.getElementById('pro-chat-btn');
+    if(chatBtn) chatBtn.style.display = 'flex';
+    
+    // 2. Muda o status na tela Meu Perfil
+    const statusPerfil = document.getElementById('perfil-status');
+    if(statusPerfil) {
+        statusPerfil.textContent = 'PRO ✦';
+        statusPerfil.style.color = '#a855f7';
+    }
+    
+    // 3. Desbloqueia a aba de Exportação na tela "Planos"
+    const lockPanel = document.querySelector('.locked-panel');
+    if(lockPanel) {
+        lockPanel.style.borderColor = '#a855f7';
+        lockPanel.innerHTML = `
+          <div class="lock-ico" style="background: rgba(168,85,247,0.15);">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="#a855f7" stroke-width="2" fill="none"></path><polyline points="7 10 12 15 17 10" stroke="#a855f7" stroke-width="2" fill="none"></polyline><line x1="12" y1="15" x2="12" y2="3" stroke="#a855f7" stroke-width="2" fill="none"></line></svg>
+          </div>
+          <div class="lock-t" style="color: var(--text);">Relatórios PRO Desbloqueados</div>
+          <button class="btn btn-p" style="margin-top:5px; background:#a855f7;" onclick="showToast('Baixando PDF... (Simulação)', '#a855f7')">Exportar PDF</button>
+        `;
+    }
+
+    // 4. Altera o botão na página "Upgrade PRO" para mostrar que ele já assina
+    const btnPro = document.querySelector('.btn-pro');
+    if(btnPro) {
+      btnPro.textContent = 'Assinatura Ativa ✦';
+      btnPro.style.background = '#a855f7';
+      btnPro.style.cursor = 'default';
+      btnPro.onclick = null; // Remove a ação de clique
+    }
+  }
+}
+
+// Verifica se a pessoa já é PRO assim que ela loga/entra no sistema
+document.addEventListener('DOMContentLoaded', () => {
+  // Chamamos com um leve atraso para dar tempo das telas carregarem
+  setTimeout(aplicarStatusPRO, 500); 
+});
+
+function dispararConfetes() {
+  // Apenas um efeito divertido visual piscando a tela
+  document.body.style.transition = 'background 0.5s';
+  const originalBg = document.body.style.background;
+  document.body.style.background = 'rgba(168, 85, 247, 0.2)';
+  setTimeout(() => { document.body.style.background = originalBg; }, 600);
+}
+
+// ===========================
+// CANCELAMENTO DE PLANO PRO
+// ===========================
+
+function openCancelModal() {
+  document.getElementById('cancel-modal').classList.add('open');
+}
+
+function closeCancelModal() {
+  document.getElementById('cancel-modal').classList.remove('open');
+}
+
+function processarCancelamento() {
+  // 1. Remove o status PRO do armazenamento
+  localStorage.removeItem('fintrack_pro');
+  isProUser = false;
+
+  // 2. Fecha o modal
+  closeCancelModal();
+
+  // 3. Feedback visual
+  showToast('Sua assinatura foi cancelada.', '#f43f5e');
+
+  // 4. Reset imediato da interface (Força o app a voltar ao estado gratuito)
+  // O modo mais limpo é recarregar as funções de interface ou a página
+  window.location.reload(); 
+}
+
+// ATUALIZAÇÃO DA FUNÇÃO aplicarStatusPRO (Substitua a anterior ou adicione estas linhas)
+function aplicarStatusPRO() {
+  const isPro = localStorage.getItem('fintrack_pro') === 'true';
+  
+  // Elementos do Perfil
+  const statusPerfil = document.getElementById('perfil-status');
+  const btnAreaPerfil = document.getElementById('perfil-btn-area');
+  
+  // Elemento do Menu Lateral (Sidebar)
+  const statusSidebar = document.querySelector('.u-plan');
+  
+  // Elemento do Chat
+  const chatBtn = document.getElementById('pro-chat-btn');
+
+  // Elemento da Página de Upgrade
+  const btnProUpgrade = document.querySelector('.btn-pro');
+
+  if (isPro) {
+    isProUser = true;
+
+    // 1. Sincroniza Textos de Status
+    if(statusPerfil) {
+      statusPerfil.textContent = 'PRO ✦';
+      statusPerfil.style.color = '#a855f7';
+    }
+    if(statusSidebar) {
+      statusSidebar.textContent = 'Plano PRO ✦';
+      statusSidebar.style.color = '#a855f7';
+    }
+
+    // 2. Chatbot e Botão de Cancelar
+    if(chatBtn) chatBtn.style.display = 'flex';
+    if(btnAreaPerfil) {
+      btnAreaPerfil.innerHTML = `<button class="btn btn-g" style="color: var(--red); border-color: rgba(244, 63, 94, 0.2); font-size: 11px;" onclick="openCancelModal()">Cancelar Assinatura</button>`;
+    }
+
+    // 3. Página de Upgrade (Desativa o botão se já for PRO)
+    if(btnProUpgrade) {
+      btnProUpgrade.textContent = 'Assinatura Ativa';
+      btnProUpgrade.style.background = 'var(--bg5)';
+      btnProUpgrade.style.cursor = 'default';
+      btnProUpgrade.onclick = null;
+    }
+
+    // 4. Desbloqueia Relatórios (Painel de Planos)
+    const lockPanel = document.querySelector('.locked-panel');
+    if(lockPanel) {
+        lockPanel.style.borderColor = '#a855f7';
+        lockPanel.innerHTML = `
+          <div class="lock-ico" style="background: rgba(168,85,247,0.15);">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="#a855f7" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          </div>
+          <div class="lock-t" style="color: var(--text); font-size: 12px;">Relatórios PRO Liberados</div>
+          <button class="btn btn-p" style="margin-top:8px; background:#a855f7; padding: 5px 12px; font-size: 10px;" onclick="showToast('Gerando PDF...', '#a855f7')">Baixar Relatório</button>
+        `;
+    }
+
+  } else {
+    // ESTADO GRATUITO (Sincronização Reversa)
+    isProUser = false;
+    if(chatBtn) chatBtn.style.display = 'none';
+    
+    if(statusPerfil) {
+      statusPerfil.textContent = 'Plano Gratuito';
+      statusPerfil.style.color = 'var(--text)';
+    }
+    if(statusSidebar) {
+      statusSidebar.textContent = 'Plano Gratuito';
+      statusSidebar.style.color = 'var(--text3)';
+    }
+    if(btnAreaPerfil) {
+      btnAreaPerfil.innerHTML = `<button class="btn btn-g" onclick="go('pro', document.querySelectorAll('.nav-item')[7])">Upgrade para PRO</button>`;
+    }
+  }
+}
