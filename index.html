@@ -15,6 +15,7 @@
 
 <div id="login-wrap">
   <div class="login-wrap">
+    
     <div class="login-card">
       <div class="login-logo">
         <div class="logo-mark">
@@ -22,7 +23,6 @@
         </div>
         <div>
           <div class="logo-name">FinTrack</div>
-          <div class="logo-tagline">Gestão Financeira Pessoal</div>
         </div>
       </div>
 
@@ -37,13 +37,8 @@
           <label class="ll">Senha</label>
           <input class="li" type="password" id="login-pass" placeholder="••••••••"/>
         </div>
-        <div class="rem-row">
-          <input type="checkbox" id="rem" checked/>
-          <label for="rem">Lembrar de mim</label>
-          <span class="forgot">Esqueci a senha</span>
-        </div>
-        <button class="btn-login" onclick="loginSupabase()">Entrar</button>
-        <div class="l-switch">Sem conta? <span onclick="toReg()">Criar conta grátis</span></div>
+        <button class="btn-login" onclick="loginSupabase()">Entrar no Sistema</button>
+        <div class="l-switch">Sem conta? <span onclick="toReg()">Criar acesso</span></div>
       </div>
 
       <div id="rv" style="display:none">
@@ -61,10 +56,13 @@
           <label class="ll">Senha</label>
           <input class="li" type="password" id="reg-pass" placeholder="Mínimo 8 caracteres"/>
         </div>
-        <button class="btn-login" onclick="registerSupabase()">Criar conta grátis</button>
-        <div class="l-switch">Já tem conta? <span onclick="toLgn()">Entrar</span></div>
+        <button class="btn-login" onclick="registerSupabase()">Ativar Acesso</button>
+        <div class="l-switch">Já tem conta? <span onclick="toLgn()">Fazer Login</span></div>
       </div>
     </div>
+
+    <span class="back-home" onclick="backToHome()">← Voltar para a Landing Page</span>
+
   </div>
 </div>
 
@@ -95,6 +93,17 @@
         <svg class="ni" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
         Planos
       </div>
+      
+      <div class="nav-item" onclick="go('budget', this)">
+        <svg class="ni" viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+        Orçamentos
+      </div>
+      
+      <div class="nav-item" onclick="go('alerts', this)">
+        <svg class="ni" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        Vencimentos
+      </div>
+      
       <div class="nav-item" onclick="go('quotes', this)">
         <svg class="ni" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
         Cotações
@@ -231,12 +240,13 @@
       <div class="ph">
         <div>
           <div class="pt">Planos Financeiros</div>
-          <div class="ps">Metas e orçamentos mensais</div>
+          <div class="ps">Metas de economia a longo prazo</div>
         </div>
         <button class="btn btn-p" onclick="openPlanModal()">+ Novo plano</button>
       </div>
       <div class="plans-grid" id="pgrid"></div>
-      <div class="two-col">
+      
+      <div class="two-col" style="margin-top: 20px;">
         <div class="panel">
           <div class="panel-title">Progresso das metas</div>
           <div class="panel-sub">Visão Geral</div>
@@ -250,6 +260,27 @@
           <div class="lock-lnk" onclick="go('pro', document.querySelectorAll('.nav-item')[7])">Ver plano PRO →</div>
         </div>
       </div>
+    </div>
+    
+    <div class="screen" id="s-budget">
+      <div class="ph">
+        <div>
+          <div class="pt" style="color: #a855f7;">Travas de Orçamento</div>
+          <div class="ps">Limites mensais de gastos por categoria</div>
+        </div>
+        <button class="btn btn-p" style="background: #a855f7;" onclick="openBudgetModal()">+ Novo Limite</button>
+      </div>
+      <div class="plans-grid" id="budget-grid"></div>
+    </div>
+    
+    <div class="screen" id="s-alerts">
+      <div class="ph">
+        <div>
+          <div class="pt" style="color: #f59e0b;">Central de Vencimentos</div>
+          <div class="ps">Monitoramento inteligente de contas e limites estourados</div>
+        </div>
+      </div>
+      <div id="alerts-area" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;"></div>
     </div>
     
     <div class="screen" id="s-quotes">
@@ -420,6 +451,22 @@
 <div class="modal-wrap" id="txn-modal">
   <div class="modal">
     <div class="modal-t">Nova transação</div>
+    
+    <div class="ocr-section" style="margin-bottom: 15px;">
+      <button id="btn-open-scanner" class="btn-scan" onclick="openScanner()">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="margin-right: 5px; vertical-align: middle;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+        Escanear Nota Fiscal (IA)
+      </button>
+      
+      <div id="scanner-container" style="display:none; position: relative; margin-top: 10px; border-radius: 8px; overflow: hidden; border: 1px solid var(--blue);">
+        <video id="camera-stream" autoplay playsinline style="width: 100%; display: block; background: #000;"></video>
+        <div id="scan-laser" class="laser"></div>
+        <button class="btn btn-p" onclick="captureAndRead()" style="width: 100%; border-radius: 0; background: linear-gradient(90deg, #2b6fff, #a855f7);">Extrair Dados do Cupom</button>
+      </div>
+      
+      <div id="ocr-status" style="font-size: 11px; color: #a855f7; margin-top: 5px; text-align: center; font-weight: 700;"></div>
+      <canvas id="snapshot-canvas" style="display:none;"></canvas>
+    </div>
     <div class="fg full" style="margin-bottom:12px">
       <div class="type-toggle">
         <button class="tb inc active" id="tb-inc" onclick="setT('income')">▲ Receita</button>
@@ -506,6 +553,29 @@
     <div class="modal-act">
       <button class="btn btn-g" onclick="closePlanModal()">Cancelar</button>
       <button class="btn btn-p" onclick="addPlan()">Criar plano</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-wrap" id="budget-modal">
+  <div class="modal">
+    <div class="modal-t" style="color: #a855f7;">Nova Trava de Orçamento</div>
+    <div class="form-row">
+      <div class="fg">
+        <label class="fl">Categoria Alvo</label>
+        <select class="fi" id="b-cat">
+          <option>Alimentação</option><option>Transporte</option><option>Moradia</option>
+          <option>Lazer</option><option>Saúde</option><option>Educação</option><option>Outros</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Limite Mensal (R$)</label>
+        <input class="fi" type="number" placeholder="Ex: 500" id="b-limit"/>
+      </div>
+    </div>
+    <div class="modal-act">
+      <button class="btn btn-g" onclick="closeBudgetModal()">Cancelar</button>
+      <button class="btn btn-p" style="background: #a855f7;" onclick="addBudget()">Salvar Trava</button>
     </div>
   </div>
 </div>
@@ -613,6 +683,7 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
 <script src="home.js"></script>

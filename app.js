@@ -1113,3 +1113,245 @@ function aplicarStatusPRO() {
     }
   }
 }
+
+// ===========================
+// IA SCANNER DE NOTAS FISCAIS (OCR)
+// ===========================
+let cameraStream = null;
+
+async function openScanner() {
+  const container = document.getElementById('scanner-container');
+  const video = document.getElementById('camera-stream');
+  const btn = document.getElementById('btn-open-scanner');
+  
+  if (container.style.display === 'block') {
+    closeScanner(); // Se já estiver aberto, ele fecha
+    return;
+  }
+
+  container.style.display = 'block';
+  btn.style.borderColor = '#a855f7';
+  btn.style.color = '#a855f7';
+  btn.innerHTML = 'Cancelando inicialização da câmera...';
+
+  try {
+    // Pede permissão e abre a câmera traseira (environment) do celular/PC
+    cameraStream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: 'environment' } 
+    });
+    video.srcObject = cameraStream;
+    btn.innerHTML = 'Câmera Ativa. Posicione o recibo.';
+  } catch (err) {
+    showToast('Acesso à câmera negado ou indisponível.', '#f43f5e');
+    closeScanner();
+  }
+}
+
+function closeScanner() {
+  const container = document.getElementById('scanner-container');
+  const btn = document.getElementById('btn-open-scanner');
+  const status = document.getElementById('ocr-status');
+  
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop()); // Desliga o led da webcam
+    cameraStream = null;
+  }
+  
+  if(container) container.style.display = 'none';
+  if(status) status.textContent = '';
+  
+  if(btn) {
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="margin-right: 5px; vertical-align: middle;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> Escanear Nota Fiscal (IA)';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+  }
+}
+
+async function captureAndRead() {
+  const video = document.getElementById('camera-stream');
+  const canvas = document.getElementById('snapshot-canvas');
+  const status = document.getElementById('ocr-status');
+  const laser = document.getElementById('scan-laser');
+  
+  if (!cameraStream) return;
+
+  // 1. Tira uma "foto" do vídeo e joga no Canvas invisível
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  
+  // 2. Inicia os efeitos visuais
+  laser.style.display = 'block';
+  status.textContent = "Processamento Quântico IA ativado... Lendo pixels.";
+  
+  try {
+    // 3. Chama a biblioteca Tesseract.js para ler o canvas (em português)
+    const { data: { text } } = await Tesseract.recognize(canvas, 'por');
+    
+    console.log("Texto Bruto da IA:", text); // Para você ver no F12 depois
+
+    // 4. Lógica Inteligente para caçar preços (Ex: 15,90 ou 1.250,00)
+    const matches = text.match(/\d+[.,]\d{2}/g);
+    let maiorValorEncontrado = 0;
+    
+    if (matches) {
+      // Procura o maior número no recibo (Geralmente é o TOTAL)
+      matches.forEach(m => {
+        // Converte "1.250,90" ou "1250.90" para float do Javascript
+        let valConvertido = parseFloat(m.replace(/\./g, '').replace(',', '.'));
+        if (valConvertido > maiorValorEncontrado) {
+          maiorValorEncontrado = valConvertido;
+        }
+      });
+    }
+    
+    // 5. Preenche os formulários automaticamente
+    document.getElementById('t-desc').value = "Recibo Lido por IA";
+    
+    if (maiorValorEncontrado > 0) {
+      document.getElementById('t-val').value = maiorValorEncontrado;
+      showToast('Sucesso! O valor total foi extraído.', '#22c55e');
+      setT('expense'); // Define automaticamente como despesa
+    } else {
+      showToast('IA não encontrou valores nítidos. Preencha manualmente.', '#f59e0b');
+    }
+    
+  } catch (e) {
+    console.error(e);
+    showToast('Falha na rede neural de leitura.', '#f43f5e');
+  } finally {
+    laser.style.display = 'none';
+    closeScanner();
+  }
+}
+
+// ATENÇÃO: Adicione isso dentro da sua função closeTxnModal() existente no app.js
+// Para garantir que a câmera desligue se a pessoa fechar a janela no meio:
+const oldCloseTxn = closeTxnModal;
+closeTxnModal = function() {
+  closeScanner();
+  oldCloseTxn();
+};
+
+// ===========================
+// SISTEMA DE ORÇAMENTOS E ALERTAS
+// ===========================
+
+// Carrega os limites salvos
+let budgets = JSON.parse(localStorage.getItem('fintrack_budgets')) || [
+  { id: 999, cat: 'Alimentação', limit: 800 }
+];
+
+function salvarBudgets() {
+  localStorage.setItem('fintrack_budgets', JSON.stringify(budgets));
+}
+
+// Calcula o gasto total do mês por categoria
+function calcSpend(cat) {
+  let total = 0;
+  transactions.filter(t => t.type === 'expense' && t.cat === cat).forEach(t => {
+    total += Number(t.val);
+  });
+  return total;
+}
+
+// Renderiza os Cards de Limite na Aba "Planos"
+function renderBudgets() {
+  const grid = document.getElementById('budget-grid');
+  if (!grid) return;
+
+  grid.innerHTML = budgets.map(b => {
+    const spent = calcSpend(b.cat);
+    const pct = Math.min(100, Math.round((spent / b.limit) * 100));
+    
+    // Muda a cor se estourar
+    let color = '#a855f7'; // Roxo padrão
+    if (pct >= 80) color = '#f59e0b'; // Laranja alerta
+    if (pct >= 100) color = '#f43f5e'; // Vermelho perigo
+
+    return `
+      <div class="plan-card" style="position: relative; border-color: ${pct >= 100 ? color : 'var(--border)'};">
+        <div class="plan-top">
+          <div style="flex: 1;">
+            <div class="plan-name">${b.cat}</div>
+            <div class="plan-cat">Trava de Segurança</div>
+          </div>
+          <button class="btn-del" onclick="deleteBudget(${b.id})" style="padding: 0; z-index: 10; position: relative;">✖</button>
+        </div>
+        <div class="pl-row">
+          <span>Gasto Mensal</span>
+          <span style="color:${color};">R$ ${spent.toLocaleString('pt-BR')} / R$ ${b.limit.toLocaleString('pt-BR')}</span>
+        </div>
+        <div class="pbar">
+          <div class="pbar-f" style="width:${pct}%; background:${color}"></div>
+        </div>
+        <div class="pct-txt" style="color:${color}">${pct}% do limite atingido</div>
+      </div>`;
+  }).join('');
+}
+
+// Modal de Orçamentos
+function openBudgetModal() { document.getElementById('budget-modal').classList.add('open'); }
+function closeBudgetModal() { document.getElementById('budget-modal').classList.remove('open'); }
+
+function addBudget() {
+  const cat = document.getElementById('b-cat').value;
+  const limit = parseFloat(document.getElementById('b-limit').value);
+
+  if (!limit || limit <= 0) {
+    showToast('Insira um limite de gasto válido', '#f43f5e');
+    return;
+  }
+
+  budgets.push({ id: Date.now(), cat, limit });
+  salvarBudgets();
+  closeBudgetModal();
+  renderBudgets();
+  generateAlerts();
+  showToast('Trava de orçamento criada!', '#a855f7');
+}
+
+function deleteBudget(id) {
+  budgets = budgets.filter(b => b.id !== id);
+  salvarBudgets();
+  renderBudgets();
+  generateAlerts();
+  showToast('Orçamento removido.', '#f43f5e');
+}
+
+// Gera os pop-ups inteligentes no Dashboard
+function generateAlerts() {
+  const alertsArea = document.getElementById('alerts-area');
+  if (!alertsArea) return;
+  
+  let alertsHTML = '';
+
+  // 1. Alertas de Orçamento Estourado
+  budgets.forEach(b => {
+    const spent = calcSpend(b.cat);
+    const pct = (spent / b.limit) * 100;
+    
+    if (pct >= 100) {
+      alertsHTML += `<div class="alert-box danger"><div class="alert-icon">⚠️</div><div><div style="font-weight:700; color:var(--red); font-size:12px;">Limite Estourado!</div><div style="font-size:11px; color:var(--text2);">Você ultrapassou o teto de R$ ${b.limit} na categoria <b>${b.cat}</b>.</div></div></div>`;
+    } else if (pct >= 80) {
+      alertsHTML += `<div class="alert-box"><div class="alert-icon">⚡</div><div><div style="font-weight:700; color:#f59e0b; font-size:12px;">Alerta de Gasto</div><div style="font-size:11px; color:var(--text2);">O orçamento de <b>${b.cat}</b> já está em ${Math.round(pct)}%. Cuidado!</div></div></div>`;
+    }
+  });
+
+  // 2. Lembrete de Despesas Fixas (Vencimentos)
+  const fixedExpenses = transactions.filter(t => t.type === 'expense' && t.recur === 'fixed');
+  if (fixedExpenses.length > 0) {
+    alertsHTML += `<div class="alert-box info"><div class="alert-icon">📅</div><div><div style="font-weight:700; color:var(--blue2); font-size:12px;">Análise de Vencimentos</div><div style="font-size:11px; color:var(--text2);">O sistema detectou <b>${fixedExpenses.length} despesa(s) fixa(s)</b>. Verifique se todas já foram pagas este mês.</div></div></div>`;
+  }
+
+  alertsArea.innerHTML = alertsHTML;
+}
+
+// ATENÇÃO: Conectando os Alertas e Orçamentos com as funções que já existem
+const oldUpdateDash = updateDashboardStats;
+updateDashboardStats = function() {
+  oldUpdateDash();
+  generateAlerts(); // Sempre que o dashboard atualizar, gera os alertas
+  renderBudgets();  // Atualiza as travas de orçamento também
+};
