@@ -1,6 +1,6 @@
 /* ===========================
    FINTRACK — app.js
-   Lógica principal do app com Cotações em Tempo Real
+   Lógica principal do app com Cotações em Tempo Real e Supabase
 =========================== */
 
 // ===========================
@@ -28,6 +28,16 @@ const ICONS = {
 
 const PLAN_COLORS = ['var(--blue)', '#22c55e', '#f59e0b', '#a855f7', '#f43f5e', '#14b8a6'];
 
+const CAT_COLORS = {
+  'Moradia': 'var(--blue)',     
+  'Alimentação': '#22c55e',     
+  'Transporte': '#f59e0b',      
+  'Lazer': '#a855f7',           
+  'Saúde': '#f43f5e',           
+  'Educação': '#14b8a6',        
+  'Outros': '#888888'           
+};
+
 let transactions = [];
 let plans = [
   { id: 1, name: 'Reserva de Emergência', cat: 'Poupança',     goal: 10000, current: 4200, recur: 'monthly' },
@@ -39,7 +49,7 @@ let currentType = 'income';
 let currentFilter = 'all';
 
 // ===========================
-// ATUALIZAR DASHBOARD 
+// ATUALIZAR DASHBOARD E GRÁFICOS
 // ===========================
 function updateDashboardStats() {
   let totalInc = 0;
@@ -59,13 +69,144 @@ function updateDashboardStats() {
   const statBalEls = document.querySelectorAll('.stat-val');
 
   if (balAmountEl) balAmountEl.textContent = `R$ ${balance.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
-  if (statIncEl) statIncEl.textContent = `R$ ${totalInc.toLocaleString('pt-BR')}`;
-  if (statExpEl) statExpEl.textContent = `R$ ${totalExp.toLocaleString('pt-BR')}`;
+  if (statIncEl) statIncEl.textContent = `R$ ${totalInc.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+  if (statExpEl) statExpEl.textContent = `R$ ${totalExp.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
   
   if (statBalEls.length >= 3) {
-    statBalEls[2].textContent = `R$ ${balance.toLocaleString('pt-BR')}`;
+    statBalEls[2].textContent = `R$ ${balance.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
   }
+
+  // Atualiza os Gráficos
+  renderCategoryChart(totalExp);
+  renderBarChart();
 }
+
+function renderCategoryChart(totalExp) {
+  const donutWrap = document.querySelector('.donut-wrap');
+  if (!donutWrap) return;
+
+  // Se não houver despesas
+  if (totalExp === 0) {
+    donutWrap.innerHTML = `
+      <svg width="80" height="80" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="29" fill="none" stroke="var(--bg4)" stroke-width="13"/>
+      </svg>
+      <div class="cats" style="justify-content:center; color:var(--text3); font-size:11px;">
+        Nenhuma despesa registrada.
+      </div>`;
+    return;
+  }
+
+  // Agrupa as despesas
+  const catTotals = {};
+  transactions.filter(t => t.type === 'expense').forEach(t => {
+    catTotals[t.cat] = (catTotals[t.cat] || 0) + Number(t.val);
+  });
+
+  // Ordena os maiores gastos
+  let sortedCats = Object.keys(catTotals).map(cat => ({
+    name: cat,
+    val: catTotals[cat],
+    pct: (catTotals[cat] / totalExp) * 100
+  })).sort((a, b) => b.val - a.val);
+
+  // Limita a 5 fatias no gráfico
+  if (sortedCats.length > 5) {
+    const top4 = sortedCats.slice(0, 4);
+    const restVal = sortedCats.slice(4).reduce((sum, c) => sum + c.val, 0);
+    top4.push({
+      name: 'Outros',
+      val: restVal,
+      pct: (restVal / totalExp) * 100
+    });
+    sortedCats = top4;
+  }
+
+  // Criação do SVG e Lista
+  const C = 2 * Math.PI * 29; 
+  let currentOffset = 0;
+  let svgCircles = '<circle cx="40" cy="40" r="29" fill="none" stroke="var(--bg4)" stroke-width="13"/>';
+  let listHTML = '';
+
+  const fallbackColors = ['var(--blue)', '#22c55e', '#f59e0b', '#a855f7', '#f43f5e'];
+
+  sortedCats.forEach((c, i) => {
+    const color = CAT_COLORS[c.name] || fallbackColors[i % fallbackColors.length];
+    
+    const strokeLength = (c.pct / 100) * C;
+    const gap = C - strokeLength;
+
+    svgCircles += `<circle cx="40" cy="40" r="29" fill="none" stroke="${color}" stroke-width="13" stroke-dasharray="${strokeLength} ${gap}" stroke-dashoffset="${-currentOffset}" transform="rotate(-90 40 40)"/>`;
+    currentOffset += strokeLength;
+
+    listHTML += `
+      <div class="cat-row">
+        <div class="cat-pip" style="background:${color}"></div>
+        <div class="cat-n">${c.name}</div>
+        <div class="cat-p">${Math.round(c.pct)}%</div>
+      </div>`;
+  });
+
+  donutWrap.innerHTML = `
+    <svg width="80" height="80" viewBox="0 0 80 80">
+      ${svgCircles}
+    </svg>
+    <div class="cats" style="flex: 1; display: flex; flex-direction: column; gap: 7px;">
+      ${listHTML}
+    </div>`;
+}
+
+function renderBarChart() {
+  const chartEl = document.getElementById('barchart');
+  if (!chartEl) return;
+
+  const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  const currentMonth = new Date().getMonth();
+  const last6Months = [];
+
+  for (let i = 5; i >= 0; i--) {
+    let m = currentMonth - i;
+    if (m < 0) m += 12; 
+    last6Months.push({ index: m, name: monthNames[m], inc: 0, exp: 0 });
+  }
+
+  transactions.forEach(t => {
+    let tMonth = currentMonth; 
+    if (t.date !== 'Hoje') {
+      const parts = t.date.split('/');
+      if (parts.length === 2) tMonth = parseInt(parts[1], 10) - 1; 
+    }
+
+    const monthObj = last6Months.find(m => m.index === tMonth);
+    if (monthObj) {
+      if (t.type === 'income') monthObj.inc += Number(t.val);
+      if (t.type === 'expense') monthObj.exp += Number(t.val);
+    }
+  });
+
+  let maxVal = 0;
+  last6Months.forEach(m => {
+    if (m.inc > maxVal) maxVal = m.inc;
+    if (m.exp > maxVal) maxVal = m.exp;
+  });
+  if (maxVal === 0) maxVal = 1; 
+
+  chartEl.innerHTML = last6Months.map(m => {
+    const heightInc = (m.inc / maxVal) * 100;
+    const heightExp = (m.exp / maxVal) * 100;
+
+    return `
+      <div class="bg-grp">
+        <div class="bg-bars">
+          <div class="b i" style="height: ${heightInc}%" title="Receita: R$ ${m.inc.toLocaleString('pt-BR')}"></div>
+          <div class="b e" style="height: ${heightExp}%" title="Despesa: R$ ${m.exp.toLocaleString('pt-BR')}"></div>
+        </div>
+        <div class="bg-lbl">${m.name}</div>
+      </div>
+    `;
+  }).join('');
+}
+
 
 // ===========================
 // NAVEGAÇÃO
@@ -82,6 +223,7 @@ function go(screenId, navEl) {
   if (screenId === 'plans')  renderPlans();
   if (screenId === 'quotes') loadQuotes();
 }
+
 
 // ===========================
 // LÓGICA DO SUPABASE (CRUD)
@@ -101,21 +243,37 @@ async function loadTransactions() {
   }
 }
 
-async function deleteTxn(id) {
-  if(confirm('Tem certeza que deseja excluir esta transação?')) {
-    const { error } = await db
-      .from('transactions')
-      .delete()
-      .eq('id', id);
+// Controle do Modal de Excluir Transação
+let txnToDeleteId = null;
 
-    if (error) {
-      showToast('Erro ao excluir do banco', '#f43f5e');
-      console.error(error);
-    } else {
-      transactions = transactions.filter(t => t.id !== id);
-      renderTransactions();
-      showToast('Transação removida.', '#f43f5e');
-    }
+function deleteTxn(id) {
+  txnToDeleteId = id;
+  document.getElementById('confirm-modal').classList.add('open');
+}
+
+function closeConfirmModal() {
+  txnToDeleteId = null;
+  document.getElementById('confirm-modal').classList.remove('open');
+}
+
+async function confirmDeleteTxn() {
+  if (!txnToDeleteId) return;
+  
+  const id = txnToDeleteId;
+  closeConfirmModal();
+
+  const { error } = await db
+    .from('transactions')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    showToast('Erro ao excluir do banco', '#f43f5e');
+    console.error(error);
+  } else {
+    transactions = transactions.filter(t => t.id !== id);
+    renderTransactions();
+    showToast('Transação removida.', '#f43f5e');
   }
 }
 
@@ -255,6 +413,34 @@ function renderTransactions() {
 // ===========================
 // PLANOS
 // ===========================
+let planToDeleteId = null;
+
+function deletePlan(id) {
+  planToDeleteId = id;
+  const modal = document.getElementById('confirm-plan-modal');
+  if (modal) {
+    modal.classList.add('open');
+  } else {
+    console.error("Modal de deletar plano não encontrada no HTML!");
+  }
+}
+
+function closeConfirmPlanModal() {
+  planToDeleteId = null;
+  const modal = document.getElementById('confirm-plan-modal');
+  if(modal) modal.classList.remove('open');
+}
+
+function confirmDeletePlan() {
+  if (!planToDeleteId) return;
+  
+  plans = plans.filter(p => p.id !== planToDeleteId);
+  
+  closeConfirmPlanModal();
+  renderPlans();
+  showToast('Plano removido com sucesso.', '#f43f5e');
+}
+
 function renderPlans() {
   const gridEl  = document.getElementById('pgrid');
   const progEl  = document.getElementById('gprog');
@@ -266,14 +452,18 @@ function renderPlans() {
     const badgeClass = p.recur === 'monthly' ? 'pb-m' : 'pb-o';
     const badgeText  = p.recur === 'monthly' ? 'Mensal' : 'Único';
 
+    // O botão 'btn-del' tem um z-index para ficar acima do hover neon do card
     return `
-      <div class="plan-card">
+      <div class="plan-card" style="position: relative;">
         <div class="plan-top">
-          <div>
+          <div style="flex: 1;">
             <div class="plan-name">${p.name}</div>
             <div class="plan-cat">${p.cat}</div>
           </div>
-          <span class="pbadge ${badgeClass}">${badgeText}</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="pbadge ${badgeClass}">${badgeText}</span>
+            <button class="btn-del" onclick="deletePlan(${p.id})" style="padding: 0; margin-top: -4px; z-index: 10; position: relative;">✖</button>
+          </div>
         </div>
         <div class="pl-row">
           <span>Progresso</span>
@@ -348,7 +538,7 @@ function addPlan() {
     return;
   }
 
-  plans.push({ id: plans.length + 1, name, cat, goal, current: 0, recur });
+  plans.push({ id: Date.now(), name, cat, goal, current: 0, recur });
 
   closePlanModal();
   renderPlans();
@@ -431,31 +621,6 @@ function mudarIdioma(showMsg = true) {
 }
 
 // ===========================
-// AUTENTICAÇÃO E STARTUP
-// ===========================
-function doLogin() {
-  localStorage.setItem('fintrack_logged', 'true'); 
-  document.getElementById('login-wrap').style.display = 'none';
-  document.getElementById('app').style.display = 'flex';
-  loadTransactions();
-}
-
-function doLogout() {
-  localStorage.removeItem('fintrack_logged'); 
-  window.location.reload(); 
-}
-
-function toReg() {
-  document.getElementById('lv').style.display = 'none';
-  document.getElementById('rv').style.display = 'block';
-}
-
-function toLgn() {
-  document.getElementById('rv').style.display = 'none';
-  document.getElementById('lv').style.display = 'block';
-}
-
-// ===========================
 // COTAÇÕES (AWESOME API)
 // ===========================
 let globalRates = {};
@@ -477,7 +642,6 @@ async function loadQuotes() {
       ${renderQuoteCard('Bitcoin', data.BTCBRL, true)}
     `;
     
-    // Atualiza o valor do conversor se ele já tiver um número
     convertCurrency(); 
   } catch (err) {
     grid.innerHTML = '<div class="ps" style="color:var(--red); grid-column: 1 / -1;">Erro ao carregar dados do mercado.</div>';
@@ -519,11 +683,97 @@ function convertCurrency() {
   }
 }
 
-// Inicializa a página
-window.onload = function() {
-  const savedName = localStorage.getItem('fintrack_nome') || 'João Duarte';
-  atualizarNomeUI(savedName);
+// ===========================
+// AUTENTICAÇÃO E STARTUP (SUPABASE)
+// ===========================
+async function registerSupabase() {
+  const nome = document.getElementById('reg-nome').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-pass').value;
 
+  if (!nome || !email || !password) {
+    showToast('Preencha todos os campos.', '#f43f5e');
+    return;
+  }
+
+  const { data, error } = await db.auth.signUp({
+    email: email,
+    password: password,
+    options: {
+      data: {
+        full_name: nome 
+      }
+    }
+  });
+
+  if (error) {
+    showToast('Erro: ' + error.message, '#f43f5e');
+  } else {
+    showToast('Conta criada com sucesso! Faça seu login.', '#22c55e');
+    toLgn(); 
+  }
+}
+
+async function loginSupabase() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-pass').value;
+
+  if (!email || !password) {
+    showToast('Preencha e-mail e senha.', '#f43f5e');
+    return;
+  }
+
+  const { data, error } = await db.auth.signInWithPassword({
+    email: email,
+    password: password
+  });
+
+  if (error) {
+    showToast('Credenciais inválidas ou erro no login.', '#f43f5e');
+  } else {
+    showToast('Login realizado com sucesso!', '#22c55e');
+    iniciarAppLogado(data.user);
+  }
+}
+
+async function doLogout() {
+  try {
+    await db.auth.signOut(); 
+    localStorage.removeItem('fintrack_logged');
+    localStorage.removeItem('fintrack_nome');
+    window.location.href = window.location.pathname; 
+  } catch (error) {
+    console.error("Erro ao sair:", error);
+    localStorage.clear();
+    window.location.reload();
+  }
+}
+
+function toReg() {
+  document.getElementById('lv').style.display = 'none';
+  document.getElementById('rv').style.display = 'block';
+}
+
+function toLgn() {
+  document.getElementById('rv').style.display = 'none';
+  document.getElementById('lv').style.display = 'block';
+}
+
+function iniciarAppLogado(user) {
+  document.getElementById('login-wrap').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  
+  if (user && user.user_metadata) {
+    const nome = user.user_metadata.full_name || 'Usuário';
+    atualizarNomeUI(nome);
+    document.getElementById('perfil-email').value = user.email;
+  }
+
+  loadTransactions();
+}
+
+// INICIALIZAÇÃO DA PÁGINA
+window.onload = async function() {
   const savedTheme = localStorage.getItem('fintrack_theme') || 'blue';
   mudarTema(savedTheme, false);
 
@@ -532,11 +782,13 @@ window.onload = function() {
     document.getElementById('config-idioma').value = savedLang;
   }
 
-  const isLogged = localStorage.getItem('fintrack_logged');
-  if (isLogged === 'true') {
-    document.getElementById('login-wrap').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    loadTransactions();
+  const { data: { session } } = await db.auth.getSession();
+  
+  if (session) {
+    iniciarAppLogado(session.user);
+  } else {
+    document.getElementById('login-wrap').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
   }
 };
 
@@ -551,9 +803,19 @@ document.getElementById('plan-modal').addEventListener('click', function (e) {
   if (e.target === this) closePlanModal();
 });
 
+document.getElementById('confirm-modal').addEventListener('click', function (e) {
+  if (e.target === this) closeConfirmModal();
+});
+
+document.getElementById('confirm-plan-modal').addEventListener('click', function (e) {
+  if (e.target === this) closeConfirmPlanModal();
+});
+
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') {
     closeTxnModal();
     closePlanModal();
+    closeConfirmModal();
+    closeConfirmPlanModal();
   }
 });

@@ -240,7 +240,7 @@ html, body {
 }
 .btn-g:hover { background: var(--bg4); color: var(--text); }
 
-/* Botão de Excluir Transação */
+/* Botão de Excluir */
 .btn-del {
   background: transparent;
   border: none;
@@ -356,7 +356,7 @@ html, body {
 .bar-chart { display: flex; align-items: flex-end; gap: 5px; height: 90px; }
 
 .bg-grp  { display: flex; flex-direction: column; align-items: center; flex: 1; }
-.bg-bars { display: flex; gap: 2px; align-items: flex-end; height: 80px; }
+.bg-bars { display: flex; gap: 2px; align-items: flex-end; height: 80px; width: 100%; justify-content: center; }
 
 .b {
   border-radius: 3px 3px 0 0;
@@ -843,4 +843,80 @@ html, body {
   .progress-wrap { width: 180px; }
 
   .form-row { grid-template-columns: 1fr; }
+}
+
+/* ===========================
+   EFEITOS NEON E ANIMAÇÕES
+=========================== */
+
+/* 1. Animação de entrada suave nas telas (Slide Up + Fade) */
+@keyframes fadeInSlide {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.screen.active {
+  animation: fadeInSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 2. Preparando os elementos para transições suaves */
+.bal-card, .stat-card, .panel, .plan-card, .txn-box, .btn-p, .logo-mark {
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+/* 3. Efeito Neon e "Levantar" nos Cards ao passar o mouse */
+.bal-card:hover, .stat-card:hover, .panel:hover, .plan-card:hover {
+  transform: translateY(-4px); /* Levanta o card */
+  border-color: var(--blue);   /* Borda ganha a cor do tema */
+  box-shadow: 
+    0 10px 25px rgba(0, 0, 0, 0.6), /* Sombra preta para dar profundidade */
+    0 0 15px var(--blue-dim),       /* Brilho neon espalhado */
+    0 0 4px var(--blue);            /* Brilho neon concentrado na borda */
+}
+
+/* Efeito sutil para a caixa de transações (já que ela é maior) */
+.txn-box:hover {
+  border-color: var(--border-blue);
+  box-shadow: 0 0 20px var(--blue-dim);
+}
+
+/* 4. Botões Principais com brilho Neon */
+.btn-p:hover {
+  box-shadow: 0 0 15px var(--blue); /* Brilho forte da cor do tema */
+  transform: translateY(-2px);
+}
+
+/* 5. Efeito no Logo da Sidebar */
+.sb-logo:hover .logo-mark {
+  box-shadow: 0 0 18px var(--blue);
+  transform: scale(1.05);
+}
+
+/* 6. Animação de entrada nas linhas de transação */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.txn-row {
+  animation: slideInRight 0.3s ease forwards;
+}
+
+/* 7. Hover mágico nos itens do menu lateral */
+.nav-item {
+  position: relative;
+  overflow: hidden;
+}
+.nav-item::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--blue);
+  transform: scaleY(0);
+  transition: transform 0.2s ease;
+  transform-origin: left;
+}
+.nav-item.active::before, .nav-item:hover::before {
+  transform: scaleY(1);
+  box-shadow: 0 0 10px var(--blue);
 }
