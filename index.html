@@ -95,6 +95,10 @@
         <svg class="ni" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
         Planos
       </div>
+      <div class="nav-item" onclick="go('quotes', this)">
+        <svg class="ni" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        Cotações
+      </div>
 
       <div class="nav-section">Conta</div>
       <div class="nav-item" onclick="go('perfil', this)">
@@ -119,7 +123,7 @@
     </nav>
 
     <div class="sb-user">
-      <div class="user-row" onclick="go('perfil', document.querySelectorAll('.nav-item')[3])">
+      <div class="user-row" onclick="go('perfil', document.querySelectorAll('.nav-item')[4])">
         <div class="av">JD</div>
         <div>
           <div class="u-name">João Duarte</div>
@@ -261,7 +265,48 @@
             <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
           </div>
           <div class="lock-t">Relatórios detalhados e exportação disponíveis no plano PRO</div>
-          <div class="lock-lnk" onclick="go('pro', document.querySelectorAll('.nav-item')[5])">Ver plano PRO →</div>
+          <div class="lock-lnk" onclick="go('pro', document.querySelectorAll('.nav-item')[7])">Ver plano PRO →</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="screen" id="s-quotes">
+      <div class="ph">
+        <div>
+          <div class="pt">Mercado Global</div>
+          <div class="ps">Cotações em tempo real (Fonte: AwesomeAPI)</div>
+        </div>
+        <button class="btn btn-g" onclick="loadQuotes()">↻ Atualizar</button>
+      </div>
+      
+      <div class="stats-grid" id="quotes-grid">
+        </div>
+
+      <div class="panel" style="margin-top: 20px;">
+        <div class="panel-title">Conversor Rápido</div>
+        <div class="form-row" style="margin-top: 15px;">
+          <div class="fg">
+            <label class="fl">De (Moeda)</label>
+            <select class="fi" id="conv-from" onchange="convertCurrency()">
+              <option value="USD">Dólar (USD)</option>
+              <option value="EUR">Euro (EUR)</option>
+              <option value="BTC">Bitcoin (BTC)</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label class="fl">Para</label>
+            <input class="fi" value="Real Brasileiro (BRL)" disabled />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="fg">
+            <label class="fl">Valor</label>
+            <input class="fi" type="number" id="conv-val" placeholder="1.00" oninput="convertCurrency()"/>
+          </div>
+          <div class="fg">
+            <label class="fl">Resultado</label>
+            <div id="conv-result" style="font-size: 18px; font-weight: 800; color: var(--blue2); margin-top: 8px;">R$ 0,00</div>
+          </div>
         </div>
       </div>
     </div>
@@ -292,7 +337,7 @@
             <div class="bal-label">Status da Conta</div>
             <div class="bal-amount" style="font-size: 20px;" id="perfil-status">Plano Gratuito</div>
           </div>
-          <button class="btn btn-g" onclick="go('pro', document.querySelectorAll('.nav-item')[5])">Ver benefícios PRO</button>
+          <button class="btn btn-g" onclick="go('pro', document.querySelectorAll('.nav-item')[7])">Ver benefícios PRO</button>
         </div>
 
         <button class="btn btn-p" onclick="salvarPerfil()">Salvar Alterações</button>

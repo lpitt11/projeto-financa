@@ -1,12 +1,12 @@
 /* ===========================
    FINTRACK — app.js
-   Lógica principal do app corrigida
+   Lógica principal do app com Cotações em Tempo Real
 =========================== */
 
 // ===========================
 // 1. CONEXÃO COM SUPABASE
 // ===========================
-const SUPABASE_URL = 'https://dsgeduzjhvepperoeuhe.supabase.co'; // Removi o /rest/v1/ pois a biblioteca v2 já faz isso sozinha
+const SUPABASE_URL = 'https://dsgeduzjhvepperoeuhe.supabase.co'; 
 const SUPABASE_KEY = 'sb_publishable_G11x2M5RWNPZO1efX_-aTw_IqVTgmT0';
 
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -39,7 +39,7 @@ let currentType = 'income';
 let currentFilter = 'all';
 
 // ===========================
-// ATUALIZAR DASHBOARD (NOVO)
+// ATUALIZAR DASHBOARD 
 // ===========================
 function updateDashboardStats() {
   let totalInc = 0;
@@ -62,7 +62,6 @@ function updateDashboardStats() {
   if (statIncEl) statIncEl.textContent = `R$ ${totalInc.toLocaleString('pt-BR')}`;
   if (statExpEl) statExpEl.textContent = `R$ ${totalExp.toLocaleString('pt-BR')}`;
   
-  // Atualiza o Saldo Final no card pequeno
   if (statBalEls.length >= 3) {
     statBalEls[2].textContent = `R$ ${balance.toLocaleString('pt-BR')}`;
   }
@@ -79,8 +78,9 @@ function go(screenId, navEl) {
   if (screen) screen.classList.add('active');
   if (navEl) navEl.classList.add('active');
 
-  if (screenId === 'txn')   renderTransactions();
-  if (screenId === 'plans') renderPlans();
+  if (screenId === 'txn')    renderTransactions();
+  if (screenId === 'plans')  renderPlans();
+  if (screenId === 'quotes') loadQuotes();
 }
 
 // ===========================
@@ -249,7 +249,6 @@ function renderTransactions() {
     }
   }
 
-  // Atualiza os valores do painel sempre que renderizar as transações
   updateDashboardStats();
 }
 
@@ -454,6 +453,70 @@ function toReg() {
 function toLgn() {
   document.getElementById('rv').style.display = 'none';
   document.getElementById('lv').style.display = 'block';
+}
+
+// ===========================
+// COTAÇÕES (AWESOME API)
+// ===========================
+let globalRates = {};
+
+async function loadQuotes() {
+  const grid = document.getElementById('quotes-grid');
+  if (!grid) return;
+
+  grid.innerHTML = '<div class="ps" style="grid-column: 1 / -1;">Carregando cotações atualizadas...</div>';
+
+  try {
+    const resp = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,BTC-BRL');
+    const data = await resp.json();
+    globalRates = data;
+
+    grid.innerHTML = `
+      ${renderQuoteCard('Dólar Americano', data.USDBRL)}
+      ${renderQuoteCard('Euro', data.EURBRL)}
+      ${renderQuoteCard('Bitcoin', data.BTCBRL, true)}
+    `;
+    
+    // Atualiza o valor do conversor se ele já tiver um número
+    convertCurrency(); 
+  } catch (err) {
+    grid.innerHTML = '<div class="ps" style="color:var(--red); grid-column: 1 / -1;">Erro ao carregar dados do mercado.</div>';
+  }
+}
+
+function renderQuoteCard(title, coin, isCrypto = false) {
+  const pct = parseFloat(coin.pctChange);
+  const pctClass = pct >= 0 ? 'chg-up' : 'chg-dn';
+  const arrow = pct >= 0 ? '↑' : '↓';
+  const val = parseFloat(coin.bid).toLocaleString('pt-BR', { 
+    style: 'currency', 
+    currency: 'BRL',
+    maximumFractionDigits: isCrypto ? 0 : 2 
+  });
+
+  return `
+    <div class="stat-card">
+      <div class="stat-label">${title}</div>
+      <div class="stat-val">${val}</div>
+      <div class="stat-change ${pctClass}">
+        ${arrow} ${pct}% nas últimas 24h
+      </div>
+    </div>
+  `;
+}
+
+function convertCurrency() {
+  const from = document.getElementById('conv-from').value;
+  const val = parseFloat(document.getElementById('conv-val').value) || 0;
+  const resultEl = document.getElementById('conv-result');
+
+  if (globalRates[from + 'BRL']) {
+    const rate = parseFloat(globalRates[from + 'BRL'].bid);
+    const total = val * rate;
+    resultEl.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  } else {
+    resultEl.textContent = 'R$ 0,00';
+  }
 }
 
 // Inicializa a página
