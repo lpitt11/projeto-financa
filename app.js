@@ -39,11 +39,19 @@ const CAT_COLORS = {
 };
 
 let transactions = [];
-let plans = [
+const defaultPlans = [
   { id: 1, name: 'Reserva de Emergência', cat: 'Poupança',     goal: 10000, current: 4200, recur: 'monthly' },
   { id: 2, name: 'Viagem Europa 2025',    cat: 'Viagem',       goal: 15000, current: 6800, recur: 'once'    },
   { id: 3, name: 'Curso de Design',       cat: 'Educação',     goal: 2500,  current: 1800, recur: 'once'    },
 ];
+
+// Busca do localStorage. Se for null, usa os dados padrão.
+let plans = JSON.parse(localStorage.getItem('fintrack_plans')) || defaultPlans;
+
+// Função auxiliar para salvar os planos no localStorage sempre que houver alteração
+function salvarPlanosLocais() {
+  localStorage.setItem('fintrack_plans', JSON.stringify(plans));
+}
 
 let currentType = 'income';
 let currentFilter = 'all';
@@ -436,6 +444,8 @@ function confirmDeletePlan() {
   
   plans = plans.filter(p => p.id !== planToDeleteId);
   
+  salvarPlanosLocais(); // <-- ADICIONE ESTA LINHA AQUI
+  
   closeConfirmPlanModal();
   renderPlans();
   showToast('Plano removido com sucesso.', '#f43f5e');
@@ -539,6 +549,8 @@ function addPlan() {
   }
 
   plans.push({ id: Date.now(), name, cat, goal, current: 0, recur });
+  
+  salvarPlanosLocais(); // <-- ADICIONE ESTA LINHA AQUI
 
   closePlanModal();
   renderPlans();
